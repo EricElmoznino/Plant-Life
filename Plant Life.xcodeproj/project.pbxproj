@@ -53,6 +53,7 @@
 		075470861E54343200CCA6AA /* run.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
 		0754708D1E54353500CCA6AA /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		0754708F1E54353B00CCA6AA /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = System/Library/Frameworks/GLUT.framework; sourceTree = SDKROOT; };
+		075470911E543F5000CCA6AA /* Handout.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Handout.pdf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +89,7 @@
 		075470691E54328B00CCA6AA /* Plant Life */ = {
 			isa = PBXGroup;
 			children = (
+				075470911E543F5000CCA6AA /* Handout.pdf */,
 				075470711E54343200CCA6AA /* CHECKLIST */,
 				075470721E54343200CCA6AA /* imgui_draw.cpp */,
 				075470731E54343200CCA6AA /* imgui_impl_glut.cpp */,
