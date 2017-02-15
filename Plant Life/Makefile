@@ -6,22 +6,22 @@
 ##############################################################################
 
 # Define C compiler
-CC            = gcc
+CC            = gcc-6
 
 # Define C++ compiler
-CCC	          = /usr/bin/g++
+CCC	          = /usr/local/bin/g++-6
 
 # Define C compiler options
-CFLAGS        = -Wall -c -O4 -I./include
+CFLAGS        = -Wall -Wno-deprecated -c -O4 -I./include
 
 # Define C++ compiler options
-CCCFLAGS      = -Wall -c -O4 -I./include
+CCCFLAGS      = -Wall -Wno-deprecated -c -O4 -I./include
 
 # Define C/C++ pre-processor options
 CPPFLAGS      = -I./
 
 # Define location of OpenGL and GLU libraries along with their lib names
-GL_LIBS       = -lGLU -lGL -lglut
+GL_LIBS       = -framework OpenGL -framework GLUT
 
 # Define location of X Windows libraries,  and the X11 library names
 XLIBS         = -L/usr/X11R6/lib -L/usr/lib -lX11 
@@ -36,7 +36,7 @@ LDFLAGS	      =
 LIBS	      = $(GL_LIBS) $(GLUT_LIBS) -lm $(XLIBS) -ldl
 
 # Define linker
-LINKER	      = g++
+LINKER	      = g++-6
 
 # Define all object files to be the same as CPPSRCS but with all the .cpp and .c suffixes replaced with .o
 OBJ           = $(CPPSRCS:.cpp=.o) $(CSRCS:.c=.o)

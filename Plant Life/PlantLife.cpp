@@ -32,10 +32,9 @@ Program Code V3.0: F. Estrada, Sep 2012.
 ***********************************************************/
 
 // OpenGL libraries
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glut.h>
-#include <imgui.h>
+#include <OpenGL/OpenGL.h>
+#include <GLUT/GLUT.h>
+#include "imgui.h"
 #include "imgui_impl_glut.h"
 #include <iostream>
 

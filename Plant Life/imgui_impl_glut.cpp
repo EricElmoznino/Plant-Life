@@ -10,12 +10,12 @@
 // If you are new to ImGui, see examples/README.txt and documentation at the top of imgui.cpp.
 // https://github.com/ocornut/imgui
 
-#include <imgui.h>
+#include "imgui.h"
 #include "imgui_impl_glut.h"
 #include <iostream>
 
 // GLUT
-#include <GL/glut.h>
+#include <GLUT/GLUT.h>
 
 // Data
 static double       g_Time = 0.0f;
