@@ -8,6 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		0754706B1E54328B00CCA6AA /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0754706A1E54328B00CCA6AA /* main.cpp */; };
+		075470871E54343200CCA6AA /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 075470721E54343200CCA6AA /* imgui_draw.cpp */; };
+		075470881E54343200CCA6AA /* imgui_impl_glut.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 075470731E54343200CCA6AA /* imgui_impl_glut.cpp */; };
+		075470891E54343200CCA6AA /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 075470751E54343200CCA6AA /* imgui.cpp */; };
+		0754708A1E54343200CCA6AA /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 075470841E54343200CCA6AA /* Makefile */; };
+		0754708B1E54343200CCA6AA /* PlantLife.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 075470851E54343200CCA6AA /* PlantLife.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +30,27 @@
 /* Begin PBXFileReference section */
 		075470671E54328B00CCA6AA /* Plant Life */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Plant Life"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0754706A1E54328B00CCA6AA /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		075470711E54343200CCA6AA /* CHECKLIST */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CHECKLIST; sourceTree = "<group>"; };
+		075470721E54343200CCA6AA /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
+		075470731E54343200CCA6AA /* imgui_impl_glut.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_impl_glut.cpp; sourceTree = "<group>"; };
+		075470741E54343200CCA6AA /* imgui_impl_glut.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_glut.h; sourceTree = "<group>"; };
+		075470751E54343200CCA6AA /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui.cpp; sourceTree = "<group>"; };
+		075470761E54343200CCA6AA /* imgui.ini */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = imgui.ini; sourceTree = "<group>"; };
+		075470781E54343200CCA6AA /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imconfig.h; sourceTree = "<group>"; };
+		075470791E54343200CCA6AA /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui.h; sourceTree = "<group>"; };
+		0754707A1E54343200CCA6AA /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_internal.h; sourceTree = "<group>"; };
+		0754707B1E54343200CCA6AA /* stb_rect_pack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_rect_pack.h; sourceTree = "<group>"; };
+		0754707C1E54343200CCA6AA /* stb_textedit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_textedit.h; sourceTree = "<group>"; };
+		0754707D1E54343200CCA6AA /* stb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_truetype.h; sourceTree = "<group>"; };
+		0754707E1E54343200CCA6AA /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imconfig.h; sourceTree = "<group>"; };
+		0754707F1E54343200CCA6AA /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_internal.h; sourceTree = "<group>"; };
+		075470801E54343200CCA6AA /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui.h; sourceTree = "<group>"; };
+		075470811E54343200CCA6AA /* stb_rect_pack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_rect_pack.h; sourceTree = "<group>"; };
+		075470821E54343200CCA6AA /* stb_textedit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_textedit.h; sourceTree = "<group>"; };
+		075470831E54343200CCA6AA /* stb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_truetype.h; sourceTree = "<group>"; };
+		075470841E54343200CCA6AA /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		075470851E54343200CCA6AA /* PlantLife.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PlantLife.cpp; sourceTree = "<group>"; };
+		075470861E54343200CCA6AA /* run.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,9 +83,38 @@
 		075470691E54328B00CCA6AA /* Plant Life */ = {
 			isa = PBXGroup;
 			children = (
+				075470711E54343200CCA6AA /* CHECKLIST */,
+				075470721E54343200CCA6AA /* imgui_draw.cpp */,
+				075470731E54343200CCA6AA /* imgui_impl_glut.cpp */,
+				075470741E54343200CCA6AA /* imgui_impl_glut.h */,
+				075470751E54343200CCA6AA /* imgui.cpp */,
+				075470761E54343200CCA6AA /* imgui.ini */,
+				075470771E54343200CCA6AA /* include */,
+				0754707E1E54343200CCA6AA /* imconfig.h */,
+				0754707F1E54343200CCA6AA /* imgui_internal.h */,
+				075470801E54343200CCA6AA /* imgui.h */,
+				075470811E54343200CCA6AA /* stb_rect_pack.h */,
+				075470821E54343200CCA6AA /* stb_textedit.h */,
+				075470831E54343200CCA6AA /* stb_truetype.h */,
+				075470841E54343200CCA6AA /* Makefile */,
+				075470851E54343200CCA6AA /* PlantLife.cpp */,
+				075470861E54343200CCA6AA /* run.sh */,
 				0754706A1E54328B00CCA6AA /* main.cpp */,
 			);
 			path = "Plant Life";
+			sourceTree = "<group>";
+		};
+		075470771E54343200CCA6AA /* include */ = {
+			isa = PBXGroup;
+			children = (
+				075470781E54343200CCA6AA /* imconfig.h */,
+				075470791E54343200CCA6AA /* imgui.h */,
+				0754707A1E54343200CCA6AA /* imgui_internal.h */,
+				0754707B1E54343200CCA6AA /* stb_rect_pack.h */,
+				0754707C1E54343200CCA6AA /* stb_textedit.h */,
+				0754707D1E54343200CCA6AA /* stb_truetype.h */,
+			);
+			path = include;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -120,7 +175,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0754708A1E54343200CCA6AA /* Makefile in Sources */,
+				0754708B1E54343200CCA6AA /* PlantLife.cpp in Sources */,
 				0754706B1E54328B00CCA6AA /* main.cpp in Sources */,
+				075470891E54343200CCA6AA /* imgui.cpp in Sources */,
+				075470881E54343200CCA6AA /* imgui_impl_glut.cpp in Sources */,
+				075470871E54343200CCA6AA /* imgui_draw.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,6 +309,7 @@
 				075470701E54328B00CCA6AA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
