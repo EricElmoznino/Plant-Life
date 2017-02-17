@@ -14,6 +14,7 @@
 		0754708B1E54343200CCA6AA /* PlantLife.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 075470851E54343200CCA6AA /* PlantLife.cpp */; };
 		0754708E1E54353500CCA6AA /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0754708D1E54353500CCA6AA /* OpenGL.framework */; };
 		075470901E54353B00CCA6AA /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0754708F1E54353B00CCA6AA /* GLUT.framework */; };
+		07D973D61E56C50A005A7033 /* Vec3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 07D973D41E56C50A005A7033 /* Vec3.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -54,6 +55,8 @@
 		0754708D1E54353500CCA6AA /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		0754708F1E54353B00CCA6AA /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = System/Library/Frameworks/GLUT.framework; sourceTree = SDKROOT; };
 		075470911E543F5000CCA6AA /* Handout.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Handout.pdf; sourceTree = "<group>"; };
+		07D973D41E56C50A005A7033 /* Vec3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vec3.cpp; sourceTree = "<group>"; };
+		07D973D51E56C50A005A7033 /* Vec3.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Vec3.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +92,7 @@
 		075470691E54328B00CCA6AA /* Plant Life */ = {
 			isa = PBXGroup;
 			children = (
+				07D973D31E56C4B6005A7033 /* Helpful types */,
 				075470911E543F5000CCA6AA /* Handout.pdf */,
 				075470711E54343200CCA6AA /* CHECKLIST */,
 				075470721E54343200CCA6AA /* imgui_draw.cpp */,
@@ -130,6 +134,15 @@
 				0754708D1E54353500CCA6AA /* OpenGL.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		07D973D31E56C4B6005A7033 /* Helpful types */ = {
+			isa = PBXGroup;
+			children = (
+				07D973D41E56C50A005A7033 /* Vec3.cpp */,
+				07D973D51E56C50A005A7033 /* Vec3.hpp */,
+			);
+			name = "Helpful types";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -190,6 +203,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				07D973D61E56C50A005A7033 /* Vec3.cpp in Sources */,
 				0754708A1E54343200CCA6AA /* Makefile in Sources */,
 				0754708B1E54343200CCA6AA /* PlantLife.cpp in Sources */,
 				075470891E54343200CCA6AA /* imgui.cpp in Sources */,

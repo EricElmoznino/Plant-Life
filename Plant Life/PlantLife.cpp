@@ -45,6 +45,9 @@ Program Code V3.0: F. Estrada, Sep 2012.
 #include <math.h>
 #include <unistd.h>
 
+// Convenience classes
+#include "Vec3.hpp"
+
 #define MAX_PLANTS 25		// Maximum number of plants for plant forests
 #define GRID_RESOLVE 64		// Size of the surface grid
 
@@ -212,6 +215,30 @@ void RenderSurfaceGrid(void)
     //       Don't forget to specify the normal at each vertex. Otherwise
     //       your surface won't be properly illuminated
     /////////////////////////////////////////////////////////////////////////
+    
+    glColor4f(1.0, 0.0, 0.0, 1.0);
+    glBegin(GL_TRIANGLES);
+    for (int i = 0; i < GRID_RESOLVE; i++) {
+        for (int j = 0; j < GRID_RESOLVE; j++) {
+            if (i > 0 && j > 0) {   // draw back triangle
+                glNormal3f(GroundNormals[i][j][0], GroundNormals[i][j][1], GroundNormals[i][j][2]);
+                glVertex3f(GroundXYZ[i][j][0], GroundXYZ[i][j][1], GroundXYZ[i][j][2]);
+                glNormal3f(GroundNormals[i-1][j][0], GroundNormals[i-1][j][1], GroundNormals[i-1][j][2]);
+                glVertex3f(GroundXYZ[i-1][j][0], GroundXYZ[i-1][j][1], GroundXYZ[i-1][j][2]);
+                glNormal3f(GroundNormals[i][j-1][0], GroundNormals[i][j-1][1], GroundNormals[i][j-1][2]);
+                glVertex3f(GroundXYZ[i][j-1][0], GroundXYZ[i][j-1][1], GroundXYZ[i][j-1][2]);
+            }
+            if (i < GRID_RESOLVE-1 && j < GRID_RESOLVE-1) { // draw front triangle
+                glNormal3f(GroundNormals[i][j][0], GroundNormals[i][j][1], GroundNormals[i][j][2]);
+                glVertex3f(GroundXYZ[i][j][0], GroundXYZ[i][j][1], GroundXYZ[i][j][2]);
+                glNormal3f(GroundNormals[i+1][j][0], GroundNormals[i+1][j][1], GroundNormals[i+1][j][2]);
+                glVertex3f(GroundXYZ[i+1][j][0], GroundXYZ[i+1][j][1], GroundXYZ[i+1][j][2]);
+                glNormal3f(GroundNormals[i][j+1][0], GroundNormals[i][j+1][1], GroundNormals[i][j+1][2]);
+                glVertex3f(GroundXYZ[i][j+1][0], GroundXYZ[i][j+1][1], GroundXYZ[i][j+1][2]);
+            }
+        }
+    }
+    glEnd();
 }
 
 void MakeSurfaceGrid(void)
@@ -252,7 +279,7 @@ void MakeSurfaceGrid(void)
         {
             GroundXYZ[i][j][0]=(-side*.5)+(i*(side/GRID_RESOLVE));
             GroundXYZ[i][j][1]=(-side*.5)+(j*(side/GRID_RESOLVE));
-            GroundXYZ[i][j][2]=0;	// <----- HERE you must define surface height in some smart way!
+            GroundXYZ[i][j][2]=sinf(2*PI*i/30.0) + sinf(2*PI*j/30.0);	// <----- HERE you must define surface height in some smart way!
         }
 
     // Compute normals at each vertex
@@ -266,14 +293,28 @@ void MakeSurfaceGrid(void)
         for (int j=0; j<GRID_RESOLVE; j++)
         {
             // Obtain two vectors on the surface the point at GroundXYZ[i][j][] is located
+            if (i == GRID_RESOLVE-1) {  // if at x-axis edge,
+                vx = 1; vy = 0; vz = 0; // vector to imaginary point at same height
+            } else {
+                vx = GroundXYZ[i+1][j][0] - GroundXYZ[i][j][0];
+                vy = GroundXYZ[i+1][j][1] - GroundXYZ[i][j][1];
+                vz = GroundXYZ[i+1][j][2] - GroundXYZ[i][j][2];
+            }
+            if (j == GRID_RESOLVE-1) {  // if at y-axis edge,
+                wx = 0; wy = 1; wz = 0; // vector to imaginary point at same height
+            } else {
+                wx = GroundXYZ[i][j+1][0] - GroundXYZ[i][j][0];
+                wy = GroundXYZ[i][j+1][1] - GroundXYZ[i][j][1];
+                wz = GroundXYZ[i][j+1][2] - GroundXYZ[i][j][2];
+            }
 
             // Then compute the normal
             computeNormal(&vx,&vy,&vz,wx,wy,wz);
 
             // And store it...
-            GroundNormals[i][j][0]=0;    // <----- HEY!
-            GroundNormals[i][j][1]=0;    // <----- REPLACE THESE COMPONENTS with the correct
-            GroundNormals[i][j][2]=1;    // <----- normal for your surface!
+            GroundNormals[i][j][0]=vx;
+            GroundNormals[i][j][1]=vy;
+            GroundNormals[i][j][2]=vz;
         }
 }
 
@@ -828,7 +869,7 @@ void quitButton(int)
     exit(0);
 }
 
-// Initialize GLUI and the user interface
+// Initialize the user interface
 void setupUI()
 {
     glDisable(GL_LIGHTING);
