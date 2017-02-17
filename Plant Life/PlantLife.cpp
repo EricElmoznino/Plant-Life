@@ -83,11 +83,11 @@ struct PlantNode{
 ******************************************************************************/
 const float PI = 3.14159;
 struct PlantNode *PlantForest[MAX_PLANTS];	// Array of pointers for a plant forest, use when drawing multiple plants
-GLfloat ForestXYZ[MAX_PLANTS][3];		// Location of plants in the forest as (x, y, z)
-GLfloat GroundXYZ[GRID_RESOLVE][GRID_RESOLVE][3];	// Array to store ground surface points as (x,y,z) points
-GLfloat GroundNormals[GRID_RESOLVE][GRID_RESOLVE][3];   // Array to hold normal vectors at vertices (will use normal to triangle
-                                                        // defined by the vertices at [i][j], [i+1][j], and [i][j+1]
-ImVec4 clear_color = ImColor(0.1f,0.1f,0.1f,1.0f);
+Vec3 ForestXYZ[MAX_PLANTS];     // Location of plants in the forest as (x, y, z)
+Vec3 GroundXYZ[GRID_RESOLVE][GRID_RESOLVE];     // Array to store ground surface points as (x,y,z) points
+Vec3 GroundNormals[GRID_RESOLVE][GRID_RESOLVE]; // Array to hold normal vectors at vertices (will use normal to triangle
+                                                   // defined by the vertices at [i][j], [i+1][j], and [i][j+1]
+ImVec4 clear_color = ImColor(0.57f,0.73f,1.0f,1.0f);
 
 // Texture data
 int textures_on;				// Flag to indicate texturing should be enabled for leafs/flowers
@@ -151,54 +151,10 @@ void AnimatedRenderPlant(void);
 // Surface generation
 void MakeSurfaceGrid(void);
 void RenderSurfaceGrid(void);
-void computeNormal(double *vx, double *vy, double *vz, double wx, double wy, double wz);
 
 /**************************************************************************
  Program Code starts
 **************************************************************************/
-void computeNormal(double *vx, double *vy, double *vz, double wx, double wy, double wz)
-{
-    //
-    // I'm giving you a handy small function to compute the normal to a surface
-    // given two vectors known to be on that surface (e.g. two sides of a GL_QUAD
-    // or GL_TRIANGLE).
-    //
-    // Notice that it returns the normal in vx, vy, vz, hence these are expected
-    // to be pointers
-    //
-    // Example call:
-    //     vx = .25;
-    //     vy = .12;
-    //     vz = -.1;
-    //     wx = .5;
-    //     wy = -.3;
-    //     wz = .25;
-    //     computeNormal(&vx, &vy, &vz, wx, wy, wz);
-    //
-    // The returned normal has unit length.
-    //
-
-    double len;
-    double nx,ny,nz;
-
-    len=sqrt(((*vx)*(*vx))+((*vy)*(*vy))+((*vz)*(*vz)));
-    *(vx)=(*vx)/len;
-    *(vy)=(*vy)/len;
-    *(vz)=(*vz)/len;
-
-    len=sqrt((wx*wx)+(wy*wy)+(wz*wz));
-    wx/=len;
-    wy/=len;
-    wz/=len;
-
-    nx=((*vy)*wz)-(wy*(*vz));
-    ny=(wx*(*vz))-((*vx)*wz);
-    nz=((*vx)*wy)-(wx*(*vy));
-
-    *(vx)=nx;
-    *(vy)=ny;
-    *(vz)=nz;
-}
 
 void RenderSurfaceGrid(void)
 {
@@ -216,25 +172,25 @@ void RenderSurfaceGrid(void)
     //       your surface won't be properly illuminated
     /////////////////////////////////////////////////////////////////////////
     
-    glColor4f(1.0, 0.0, 0.0, 1.0);
+    glColor4f(0.39, 0.62, 0.31, 1.0);
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < GRID_RESOLVE; i++) {
         for (int j = 0; j < GRID_RESOLVE; j++) {
             if (i > 0 && j > 0) {   // draw back triangle
-                glNormal3f(GroundNormals[i][j][0], GroundNormals[i][j][1], GroundNormals[i][j][2]);
-                glVertex3f(GroundXYZ[i][j][0], GroundXYZ[i][j][1], GroundXYZ[i][j][2]);
-                glNormal3f(GroundNormals[i-1][j][0], GroundNormals[i-1][j][1], GroundNormals[i-1][j][2]);
-                glVertex3f(GroundXYZ[i-1][j][0], GroundXYZ[i-1][j][1], GroundXYZ[i-1][j][2]);
-                glNormal3f(GroundNormals[i][j-1][0], GroundNormals[i][j-1][1], GroundNormals[i][j-1][2]);
-                glVertex3f(GroundXYZ[i][j-1][0], GroundXYZ[i][j-1][1], GroundXYZ[i][j-1][2]);
+                glNormal3f(GroundNormals[i][j].x, GroundNormals[i][j].y, GroundNormals[i][j].z);
+                glVertex3f(GroundXYZ[i][j].x, GroundXYZ[i][j].y, GroundXYZ[i][j].z);
+                glNormal3f(GroundNormals[i-1][j].x, GroundNormals[i-1][j].y, GroundNormals[i-1][j].z);
+                glVertex3f(GroundXYZ[i-1][j].x, GroundXYZ[i-1][j].y, GroundXYZ[i-1][j].z);
+                glNormal3f(GroundNormals[i][j-1].x, GroundNormals[i][j-1].y, GroundNormals[i][j-1].z);
+                glVertex3f(GroundXYZ[i][j-1].x, GroundXYZ[i][j-1].y, GroundXYZ[i][j-1].z);
             }
             if (i < GRID_RESOLVE-1 && j < GRID_RESOLVE-1) { // draw front triangle
-                glNormal3f(GroundNormals[i][j][0], GroundNormals[i][j][1], GroundNormals[i][j][2]);
-                glVertex3f(GroundXYZ[i][j][0], GroundXYZ[i][j][1], GroundXYZ[i][j][2]);
-                glNormal3f(GroundNormals[i+1][j][0], GroundNormals[i+1][j][1], GroundNormals[i+1][j][2]);
-                glVertex3f(GroundXYZ[i+1][j][0], GroundXYZ[i+1][j][1], GroundXYZ[i+1][j][2]);
-                glNormal3f(GroundNormals[i][j+1][0], GroundNormals[i][j+1][1], GroundNormals[i][j+1][2]);
-                glVertex3f(GroundXYZ[i][j+1][0], GroundXYZ[i][j+1][1], GroundXYZ[i][j+1][2]);
+                glNormal3f(GroundNormals[i][j].x, GroundNormals[i][j].y, GroundNormals[i][j].z);
+                glVertex3f(GroundXYZ[i][j].x, GroundXYZ[i][j].y, GroundXYZ[i][j].z);
+                glNormal3f(GroundNormals[i+1][j].x, GroundNormals[i+1][j].y, GroundNormals[i+1][j].z);
+                glVertex3f(GroundXYZ[i+1][j].x, GroundXYZ[i+1][j].y, GroundXYZ[i+1][j].z);
+                glNormal3f(GroundNormals[i][j+1].x, GroundNormals[i][j+1].y, GroundNormals[i][j+1].z);
+                glVertex3f(GroundXYZ[i][j+1].x, GroundXYZ[i][j+1].y, GroundXYZ[i][j+1].z);
             }
         }
     }
@@ -269,7 +225,8 @@ void MakeSurfaceGrid(void)
     //             We don't want plants sinking into the ground!
     /////////////////////////////////////////////////////////////////////////
     double side;
-    double vx,vy,vz,wx,wy,wz;
+    float height;
+    Vec3 v1, v2;    // Two vectors on triangle (used to compute normal)
 
     // Assign surface heights
     side=15;				// Width of the surface - X and Y coordinates
@@ -277,9 +234,10 @@ void MakeSurfaceGrid(void)
     for (int i=0; i<GRID_RESOLVE; i++)
         for (int j=0; j<GRID_RESOLVE; j++)
         {
-            GroundXYZ[i][j][0]=(-side*.5)+(i*(side/GRID_RESOLVE));
-            GroundXYZ[i][j][1]=(-side*.5)+(j*(side/GRID_RESOLVE));
-            GroundXYZ[i][j][2]=sinf(2*PI*i/30.0) + sinf(2*PI*j/30.0);	// <----- HERE you must define surface height in some smart way!
+            height = sinf(2*PI*i/30.0) + sinf(2*PI*j/30.0); // <----- HERE you must define surface height in some smart way!
+            GroundXYZ[i][j] = Vec3((-side*.5)+(i*(side/GRID_RESOLVE)),
+                                   (-side*.5)+(j*(side/GRID_RESOLVE)),
+                                   height);
         }
 
     // Compute normals at each vertex
@@ -294,27 +252,18 @@ void MakeSurfaceGrid(void)
         {
             // Obtain two vectors on the surface the point at GroundXYZ[i][j][] is located
             if (i == GRID_RESOLVE-1) {  // if at x-axis edge,
-                vx = 1; vy = 0; vz = 0; // vector to imaginary point at same height
+                v1 = Vec3(1, 0, 0);     // vector to imaginary point at same height
             } else {
-                vx = GroundXYZ[i+1][j][0] - GroundXYZ[i][j][0];
-                vy = GroundXYZ[i+1][j][1] - GroundXYZ[i][j][1];
-                vz = GroundXYZ[i+1][j][2] - GroundXYZ[i][j][2];
+                v1 = GroundXYZ[i+1][j] - GroundXYZ[i][j];
             }
             if (j == GRID_RESOLVE-1) {  // if at y-axis edge,
-                wx = 0; wy = 1; wz = 0; // vector to imaginary point at same height
+                v2 = Vec3(0, 0, 1);     // vector to imaginary point at same height
             } else {
-                wx = GroundXYZ[i][j+1][0] - GroundXYZ[i][j][0];
-                wy = GroundXYZ[i][j+1][1] - GroundXYZ[i][j][1];
-                wz = GroundXYZ[i][j+1][2] - GroundXYZ[i][j][2];
+                v2 = GroundXYZ[i][j+1] - GroundXYZ[i][j];
             }
-
-            // Then compute the normal
-            computeNormal(&vx,&vy,&vz,wx,wy,wz);
-
-            // And store it...
-            GroundNormals[i][j][0]=vx;
-            GroundNormals[i][j][1]=vy;
-            GroundNormals[i][j][2]=vz;
+            
+            // Find the cross product between the two vectors and store the unit normal
+            GroundNormals[i][j] = v1.crossUnit(v2);
         }
 }
 
@@ -760,9 +709,9 @@ int main(int argc, char** argv)
     initGlut(argv[0]);
 
     // Initialize all data arrays
-    memset(&GroundXYZ[0][0][0],0,GRID_RESOLVE*GRID_RESOLVE*3*sizeof(GL_FLOAT));
-    memset(&GroundNormals[0][0][0],0,GRID_RESOLVE*GRID_RESOLVE*3*sizeof(GL_FLOAT));
-    memset(&ForestXYZ[0][0],0,n_plants*3*sizeof(GL_FLOAT));
+    memset(&GroundXYZ[0][0],0,GRID_RESOLVE*GRID_RESOLVE*sizeof(Vec3));
+    memset(&GroundNormals[0][0],0,GRID_RESOLVE*GRID_RESOLVE*sizeof(Vec3));
+    memset(&ForestXYZ[0],0,n_plants*sizeof(Vec3));
 
     // Generate surface map
     MakeSurfaceGrid();
@@ -1031,7 +980,7 @@ void WindowDisplay(void)
             for (int i=0; i<n_plants; i++)
             {
                 glPushMatrix();
-                    glTranslatef(ForestXYZ[i][0],ForestXYZ[i][1],ForestXYZ[i][2]);
+                    glTranslatef(ForestXYZ[i].x,ForestXYZ[i].y,ForestXYZ[i].z);
                     RenderPlant(PlantForest[i]);
                 glPopMatrix();
             }
