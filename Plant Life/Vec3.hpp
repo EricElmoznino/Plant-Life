@@ -26,7 +26,13 @@ public:
     Vec3 operator+(const Vec3 &other) const;
     Vec3 operator-(const Vec3 &other) const;
     Vec3 operator*(float scale) const;          // vec * scalar
+    
+    Vec3 linearInterpolate(const Vec3 &end, float progress) const;
+    
+    // debugging
+    void printVec3(void) const;
 };
+
 Vec3 operator*(float scale, const Vec3& vec); // scalar * vec
 
 #endif /* Vec3_hpp */

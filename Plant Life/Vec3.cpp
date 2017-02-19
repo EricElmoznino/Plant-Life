@@ -7,6 +7,7 @@
 //
 
 #include "Vec3.hpp"
+#include <iostream>
 #include <math.h>
 
 Vec3::Vec3() {
@@ -50,6 +51,20 @@ Vec3 Vec3::operator-(const Vec3 &other) const {
 
 Vec3 Vec3::operator*(float scale) const {
     return Vec3(this->x * scale, this->y * scale, this->z * scale);
+}
+
+Vec3 Vec3::linearInterpolate(const Vec3 &end, float progress) const {
+    if (progress < 0 || progress > 1.0) {
+        printf("Error: Vec3::linearInterpolate\nthe 'progress' argument must be in range [0.0, 1.0], but was %f\n", progress);
+        exit(1);
+    }
+    
+    Vec3 difference = end - (*this);
+    return (*this) + difference*progress;
+}
+
+void Vec3::printVec3(void) const {
+    printf("(%.2f, %.2f, %.2f)\n", x, y, z);
 }
 
 Vec3 operator*(float scale, const Vec3& vec) {

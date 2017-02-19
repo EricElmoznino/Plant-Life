@@ -15,7 +15,7 @@
    * Understand and use illumination in OpenGL
    * Use simple functions to generate a ground surface map.
 
-  What to do:
+  What TODO
 
    * Read the handout! it contains important details about
      the work you are supposed to do here and explains
@@ -23,7 +23,7 @@
    * Read the comments in this starter file, which detail
      what the existing code does and indicate what needs
      doing.
-   * Complete all the parts marked // TO DO:
+   * Complete all the parts marked // TODO
    * Add any // CRUNCHY:  extensions you want
    * Test thoroughly and make sure it works on CDF
    * Complete the CHECKLIST and REPORT files!
@@ -49,9 +49,11 @@ Program Code V3.0: F. Estrada, Sep 2012.
 #include "Vec3.hpp"
 
 #define MAX_PLANTS 25		// Maximum number of plants for plant forests
-#define GRID_RESOLVE 64		// Size of the surface grid
+#define GRID_RESOLVE 257	// Size of the surface grid
 #define SIDE 15.0           // Width of the surface - X and Y coordinates
                                 // will have values in [-side/2, side/2]
+#define MAX_HEIGHT SIDE/2.0 // Height range of the terrain
+#define ROUGHNESS 0.3       // Jaggedness of terrain
 
 /******************************************************************************
   Data structures section
@@ -154,6 +156,8 @@ void AnimatedRenderPlant(void);
 // Surface generation
 void MakeSurfaceGrid(void);
 void RenderSurfaceGrid(void);
+void MidPointDisplacement(Vec3 coordinates[GRID_RESOLVE][GRID_RESOLVE], float maxHeight, float roughness);
+void Divide(Vec3 coord[GRID_RESOLVE][GRID_RESOLVE], float maxHeight, int size, float roughness);
 
 // Assigning plant locations
 void DistributePlants(void);
@@ -168,7 +172,7 @@ void RenderSurfaceGrid(void)
     // Render the surface grid defined by the vertices in GroundXYZ
 
     /////////////////////////////////////////////////////////////////////////
-    // TODO: Write code to draw the surface map you generated.
+    // DONE: Write code to draw the surface map you generated.
     //       Remember that you have vertices on a square grid. You can
     //       easily determine (or you can look at the notes!) how to
     //       create GL_QUADS, or GL_TRIANGLES from the vertices in the
@@ -179,11 +183,31 @@ void RenderSurfaceGrid(void)
     //       your surface won't be properly illuminated
     /////////////////////////////////////////////////////////////////////////
     
-    glColor4f(0.39, 0.62, 0.31, 1.0);
+    float minHeight = MAXFLOAT;
+    float maxHeight = -MAXFLOAT;
+    for (int i = 0; i < GRID_RESOLVE; i++) {
+        for (int j = 0; j < GRID_RESOLVE; j++) {
+            if (GroundXYZ[i][j].z < minHeight) {
+                minHeight = GroundXYZ[i][j].z;
+            }
+            if (GroundXYZ[i][j].z > maxHeight) {
+                maxHeight = GroundXYZ[i][j].z;
+            }
+        }
+    }
+    
+    Vec3 trothColor = Vec3(0.2, 0.2, 0.3);
+    Vec3 peakColor = Vec3(0.6, 0.8, 0.3);
+    
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < GRID_RESOLVE; i++) {
         for (int j = 0; j < GRID_RESOLVE; j++) {
             if (i > 0 && j > 0) {   // draw back triangle
+                float averageHeight = (GroundXYZ[i][j].z + GroundXYZ[i-1][j].z + GroundXYZ[i][j-1].z)/3;
+                float progress = (averageHeight - minHeight)/(maxHeight - minHeight);
+                Vec3 color = trothColor.linearInterpolate(peakColor, progress);
+                glColor4f(color.x, color.y, color.z, 1.0);
+                
                 glNormal3f(GroundNormals[i][j].x, GroundNormals[i][j].y, GroundNormals[i][j].z);
                 glVertex3f(GroundXYZ[i][j].x, GroundXYZ[i][j].y, GroundXYZ[i][j].z);
                 glNormal3f(GroundNormals[i-1][j].x, GroundNormals[i-1][j].y, GroundNormals[i-1][j].z);
@@ -192,6 +216,11 @@ void RenderSurfaceGrid(void)
                 glVertex3f(GroundXYZ[i][j-1].x, GroundXYZ[i][j-1].y, GroundXYZ[i][j-1].z);
             }
             if (i < GRID_RESOLVE-1 && j < GRID_RESOLVE-1) { // draw front triangle
+                float averageHeight = (GroundXYZ[i][j].z + GroundXYZ[i+1][j].z + GroundXYZ[i][j+1].z) * 0.33;
+                float progress = (averageHeight - minHeight)/(maxHeight - minHeight);
+                Vec3 color = trothColor.linearInterpolate(peakColor, progress);
+                glColor4f(color.x, color.y, color.z, 1.0);
+                
                 glNormal3f(GroundNormals[i][j].x, GroundNormals[i][j].y, GroundNormals[i][j].z);
                 glVertex3f(GroundXYZ[i][j].x, GroundXYZ[i][j].y, GroundXYZ[i][j].z);
                 glNormal3f(GroundNormals[i+1][j].x, GroundNormals[i+1][j].y, GroundNormals[i+1][j].z);
@@ -209,7 +238,7 @@ void MakeSurfaceGrid(void)
     // Generate an interesting surface to place the plants on
 
     /////////////////////////////////////////////////////////////////////////
-    // TODO: Write code to generate a surface map. I am already giving you
+    // DONE: Write code to generate a surface map. I am already giving you
     //       a skeleton that fills an array of vertices corresponding to
     //       locations on a square grid. The square grid is defined on the
     //       XY plane, and your joy is to determine the value of Z at each
@@ -232,18 +261,17 @@ void MakeSurfaceGrid(void)
     //             We don't want plants sinking into the ground!
     /////////////////////////////////////////////////////////////////////////
     
-    float height;
     Vec3 v1, v2;    // Two vectors on triangle (used to compute normal)
 
     // Assign surface heights
     for (int i=0; i<GRID_RESOLVE; i++)
         for (int j=0; j<GRID_RESOLVE; j++)
         {
-            height = sinf(2*PI*i/30.0) + sinf(2*PI*j/30.0); // <----- HERE you must define surface height in some smart way!
-            GroundXYZ[i][j] = Vec3((-SIDE*.5)+(i*(SIDE/GRID_RESOLVE)),
-                                   (-SIDE*.5)+(j*(SIDE/GRID_RESOLVE)),
-                                   height);
+            GroundXYZ[i][j] = Vec3((-SIDE*.5)+(i*(SIDE/(GRID_RESOLVE-1))),
+                                   (-SIDE*.5)+(j*(SIDE/(GRID_RESOLVE-1))),
+                                   MAX_HEIGHT/2.0);
         }
+    MidPointDisplacement(GroundXYZ, MAX_HEIGHT, ROUGHNESS);
 
     // Compute normals at each vertex
     // Remember we talked about how to compute the normal for a triangle in lecture. You
@@ -262,7 +290,7 @@ void MakeSurfaceGrid(void)
                 v1 = GroundXYZ[i+1][j] - GroundXYZ[i][j];
             }
             if (j == GRID_RESOLVE-1) {  // if at y-axis edge,
-                v2 = Vec3(0, 0, 1);     // vector to imaginary point at same height
+                v2 = Vec3(0, 1, 0);     // vector to imaginary point at same height
             } else {
                 v2 = GroundXYZ[i][j+1] - GroundXYZ[i][j];
             }
@@ -270,6 +298,39 @@ void MakeSurfaceGrid(void)
             // Find the cross product between the two vectors and store the unit normal
             GroundNormals[i][j] = v1.crossUnit(v2);
         }
+}
+
+void MidPointDisplacement(Vec3 coordinates[GRID_RESOLVE][GRID_RESOLVE], float maxHeight, float roughness) {
+    Divide(coordinates, maxHeight, GRID_RESOLVE-1, roughness);
+}
+
+void Divide(Vec3 coord[GRID_RESOLVE][GRID_RESOLVE], float maxHeight, int size, float roughness) {
+    int half = size/2;
+    float scale = roughness * maxHeight;
+    
+    if (half < 1) return;
+    
+    for (int y = half; y < GRID_RESOLVE-1; y += size) {
+        for (int x = half; x < GRID_RESOLVE-1; x += size) {
+            float average = (coord[x-half][y-half].z+coord[x+half][y-half].z+coord[x-half][y+half].z+coord[x+half][y+half].z)/4.0;
+            coord[x][y].z = average + drand48()*scale*2-scale;
+        }
+    }
+    
+    for (int y = 0; y < GRID_RESOLVE; y += half) {
+        for (int x = (y+half)%size; x < GRID_RESOLVE; x += size) {
+            float average = 0.0;
+            int numCorners = 0;
+            if (y > half) { average += coord[x][y-half].z; numCorners++; }
+            if (y+half < GRID_RESOLVE) { average += coord[x][y+half].z; numCorners++; }
+            if (x > half) { average += coord[x-half][y].z; numCorners++; }
+            if (x+half < GRID_RESOLVE) { average += coord[x+half][y].z; numCorners++; }
+            average /= numCorners;
+            coord[x][y].z = average + drand48()*scale*2-scale;
+        }
+    }
+    
+    Divide(coord, maxHeight/2, size/2, roughness);
 }
 
 void DistributePlants(void) {
@@ -287,12 +348,12 @@ void DistributePlants(void) {
 
 float SurfaceHeightAtLocation(float x, float y) {
     // Find the ground indices corresponding to the plant's coordinates
-    int i = (x + SIDE/2.0) / (SIDE/GRID_RESOLVE);   // [0, GRID_RESOLVE-2]
-    int j = (y + SIDE/2.0) / (SIDE/GRID_RESOLVE);   // [0, GRID_RESOLVE-2]
+    int i = (x + SIDE/2.0) / (SIDE/(GRID_RESOLVE-1));   // [0, GRID_RESOLVE-2]
+    int j = (y + SIDE/2.0) / (SIDE/(GRID_RESOLVE-1));   // [0, GRID_RESOLVE-2]
     
     // Find the extra ratio to linearly interpolate along  the triangle face at i,j
-    float deltaX = ((x + SIDE/2.0) - i*(SIDE/GRID_RESOLVE)) / (SIDE/GRID_RESOLVE);
-    float deltaY = ((y + SIDE/2.0) - j*(SIDE/GRID_RESOLVE)) / (SIDE/GRID_RESOLVE);
+    float deltaX = ((x + SIDE/2.0) - i*(SIDE/(GRID_RESOLVE-1))) / (SIDE/(GRID_RESOLVE-1));
+    float deltaY = ((y + SIDE/2.0) - j*(SIDE/(GRID_RESOLVE-1))) / (SIDE/(GRID_RESOLVE-1));
     
     // Linearly interpolate along the triangle to find the precise height.
     // Subtract a small amount to root the plant in the ground.
@@ -322,7 +383,7 @@ void RenderPlant(struct PlantNode *p)
     // position.
 
     ////////////////////////////////////////////////////////////
-    // TO DO: Complete this function to draw the plant as a
+    // DONE Complete this function to draw the plant as a
     //        hierarchical structure. Hint: This will involve
     //        performing a tree-traversal in the proper order
     //
@@ -383,6 +444,8 @@ void StemSection(void)
     // Draws a single stem section, along the current local Z axis
     // I'm giving you this function already so you can at least see
     // the 'skeleton' of your plant to help debug the L-system.
+    
+    glColor4f(0.39, 0.62, 0.31, 1.0);
 
     // Create a quadrics object to make the stem
     GLUquadric *quadObject = gluNewQuadric();
@@ -410,7 +473,7 @@ void LeafSection(void)
     // Perhaps you should translate now? :)
 
     ////////////////////////////////////////////////////////////
-    // TO DO: Draw your own leaf design.
+    // TODO Draw your own leaf design.
     //        It should be aligned with the current Z
     //        axis, and all transformations for positioning
     //        and orienting the leaf in the plant should be
@@ -477,7 +540,7 @@ void FlowerSection()
     // Draws a flower perpendicular to the current local Z axis
 
     /////////////////////////////////////////////////////////////
-    // TO DO: Add code to draw a flower,
+    // TODO Add code to draw a flower,
     //        It should be perpendicular to the Z axis, i.e.
     //        it should have the same orientation as the local
     //        x-y plane.
@@ -652,7 +715,7 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
     if (p->type=='a')
     {
         /////////////////////////////////////////////////////////////
-        // TO DO: Complete this part, select a replacement rule for
+        // DONE Complete this part, select a replacement rule for
         //        this node based on the probabilities stated above
         //        (also found in the handbook), and add the appropriate
         //        nodes to the plant tree. This is implemented below
@@ -837,11 +900,6 @@ int main(int argc, char** argv)
     glutInit(&argc, argv);
     initGlut(argv[0]);
 
-    // Initialize all data arrays
-    memset(&GroundXYZ[0][0],0,GRID_RESOLVE*GRID_RESOLVE*sizeof(Vec3));
-    memset(&GroundNormals[0][0],0,GRID_RESOLVE*GRID_RESOLVE*sizeof(Vec3));
-    memset(&ForestXYZ[0],0,n_plants*sizeof(Vec3));
-
     // Generate surface map
     MakeSurfaceGrid();
 
@@ -850,7 +908,7 @@ int main(int argc, char** argv)
         PlantForest[i]=MakePlant();
 
     //////////////////////////////////////////////////////////////
-    // TO DO: Set the locations of the plants in the plant forest
+    // DONE Set the locations of the plants in the plant forest
     //        randomly in X,Y, but at the correct height for
     //        the corresponding location in the surface grid.
     //////////////////////////////////////////////////////////////
@@ -957,7 +1015,7 @@ void setupUI()
     ImGui::Begin("PlantLife Window");
 
     ///////////////////////////////////////////////////////////
-    // TO DO: Add the controls for global rotation and scale
+    // DONE Add the controls for global rotation and scale
     //        as specified. Variables are already provided:
     //        global_Z      <--- global rotation around Z
     //        global_scale  <--- global scaling
