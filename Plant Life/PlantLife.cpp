@@ -50,6 +50,8 @@ Program Code V3.0: F. Estrada, Sep 2012.
 
 #define MAX_PLANTS 25		// Maximum number of plants for plant forests
 #define GRID_RESOLVE 64		// Size of the surface grid
+#define SIDE 15.0           // Width of the surface - X and Y coordinates
+                                // will have values in [-side/2, side/2]
 
 /******************************************************************************
   Data structures section
@@ -112,6 +114,7 @@ GLint n_levels;       // Number of levels of branching in the plant
 GLint n_plants;	      // Number of plants in a plant forest in [1,MAX_PLANTS]
 
 // Transition probabilities for the L-system specification
+GLfloat Paaa;
 GLfloat Paab;
 GLfloat Paac;
 GLfloat Paad;
@@ -151,6 +154,10 @@ void AnimatedRenderPlant(void);
 // Surface generation
 void MakeSurfaceGrid(void);
 void RenderSurfaceGrid(void);
+
+// Assigning plant locations
+void DistributePlants(void);
+float SurfaceHeightAtLocation(float x, float y);
 
 /**************************************************************************
  Program Code starts
@@ -224,19 +231,17 @@ void MakeSurfaceGrid(void)
     //             surface height at the point where it is rooted.
     //             We don't want plants sinking into the ground!
     /////////////////////////////////////////////////////////////////////////
-    double side;
+    
     float height;
     Vec3 v1, v2;    // Two vectors on triangle (used to compute normal)
 
     // Assign surface heights
-    side=15;				// Width of the surface - X and Y coordinates
-                    // will have values in [-side/2, side/2]
     for (int i=0; i<GRID_RESOLVE; i++)
         for (int j=0; j<GRID_RESOLVE; j++)
         {
             height = sinf(2*PI*i/30.0) + sinf(2*PI*j/30.0); // <----- HERE you must define surface height in some smart way!
-            GroundXYZ[i][j] = Vec3((-side*.5)+(i*(side/GRID_RESOLVE)),
-                                   (-side*.5)+(j*(side/GRID_RESOLVE)),
+            GroundXYZ[i][j] = Vec3((-SIDE*.5)+(i*(SIDE/GRID_RESOLVE)),
+                                   (-SIDE*.5)+(j*(SIDE/GRID_RESOLVE)),
                                    height);
         }
 
@@ -265,6 +270,35 @@ void MakeSurfaceGrid(void)
             // Find the cross product between the two vectors and store the unit normal
             GroundNormals[i][j] = v1.crossUnit(v2);
         }
+}
+
+void DistributePlants(void) {
+    for (int i = 0; i < n_plants; i++) {
+        // Random (x, y) coordinates within grid bounds [-SIDE/2, SIDE/2]
+        float x = (drand48() * SIDE) - SIDE*0.5;
+        float y = (drand48() * SIDE) - SIDE*0.5;
+        
+        // Compute height based on height of terrain at (x, y)
+        float z = SurfaceHeightAtLocation(x, y);
+        
+        ForestXYZ[i] = Vec3(x, y, z);
+    }
+}
+
+float SurfaceHeightAtLocation(float x, float y) {
+    // Find the ground indices corresponding to the plant's coordinates
+    int i = (x + SIDE/2.0) / (SIDE/GRID_RESOLVE);   // [0, GRID_RESOLVE-2]
+    int j = (y + SIDE/2.0) / (SIDE/GRID_RESOLVE);   // [0, GRID_RESOLVE-2]
+    
+    // Find the extra ratio to linearly interpolate along  the triangle face at i,j
+    float deltaX = ((x + SIDE/2.0) - i*(SIDE/GRID_RESOLVE)) / (SIDE/GRID_RESOLVE);
+    float deltaY = ((y + SIDE/2.0) - j*(SIDE/GRID_RESOLVE)) / (SIDE/GRID_RESOLVE);
+    
+    // Linearly interpolate along the triangle to find the precise height.
+    // Subtract a small amount to root the plant in the ground.
+    return GroundXYZ[i][j].z - 0.05 +
+        deltaX * (GroundXYZ[i+1][j].z - GroundXYZ[i][j].z) +
+        deltaY * (GroundXYZ[i][j+1].z - GroundXYZ[i][j].z);
 }
 
 void AnimatedRenderPlant(void)
@@ -300,6 +334,48 @@ void RenderPlant(struct PlantNode *p)
     ////////////////////////////////////////////////////////////
 
     if (p==NULL) return;		// Avoid crash if called with empty node
+    
+    glPushMatrix();
+    
+        // Rotations and scale with respect to parent.
+        // Will apply to this node as well as all children.
+        glScalef(p->scl, p->scl, p->scl);
+        glRotatef(p->x_ang, 1, 0, 0);
+        glRotatef(p->z_ang, 0, 0, 1);
+        
+        // Draw this node
+        switch (p->type) {
+            case 'a':
+                StemSection();
+                break;
+            case 'b':
+                StemSection();
+                break;
+            case 'c':
+                LeafSection();
+                break;
+            case 'd':
+                FlowerSection();
+                break;
+            default:
+                break;
+        }
+        
+        // Translate to the end of the current stem to draw children.
+        // Note: only stems will have children, so if current node is
+        // a leaf or flower then this translation will have no effect,
+        // since nothing is drawn after.
+        glPushMatrix();
+        
+            glTranslatef(0, 0, 1);  // step has length 1 in current scale
+            
+            // Draw children recursively as depth-first traversal
+            RenderPlant(p->left);
+            RenderPlant(p->right);
+        
+        glPopMatrix();
+    
+    glPopMatrix();
 }
 
 void StemSection(void)
@@ -309,10 +385,17 @@ void StemSection(void)
     // the 'skeleton' of your plant to help debug the L-system.
 
     // Create a quadrics object to make the stem
-    GLUquadric *quadObject;
-    quadObject=gluNewQuadric();
+    GLUquadric *quadObject = gluNewQuadric();
 
     gluCylinder(quadObject,.05,.04,1,10,10);
+    
+    // Make circular joints at the end for nicer connections
+    // (i.e. not a cutoff flat cylinder, but ones with rounded tips)
+    glPushMatrix();
+    glTranslatef(0, 0, 1);
+    gluSphere(quadObject, .04, 10, 10);
+    glPopMatrix();
+    
 
     // Destroy our quadrics object
     gluDeleteQuadric(quadObject);
@@ -473,11 +556,11 @@ void PrintPlant(struct PlantNode *p)
 void printNodeRecursive(struct PlantNode *p, int lev, int tgt)
 {
     if (p==NULL) return;
-        if (lev==tgt)
-        {
-            fprintf(stderr,"%c ",p->type);
-            return;
-        }
+    if (lev==tgt)
+    {
+        fprintf(stderr,"%c ",p->type);
+        return;
+    }
 
     if (p->left!=NULL) printNodeRecursive(p->left,lev+1,tgt);
     if (p->right!=NULL) printNodeRecursive(p->right,lev+1,tgt);
@@ -575,7 +658,52 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
         //        nodes to the plant tree. This is implemented below
         //        for 'b' type nodes, and you can look at that code
         //        to give you an idea how the process works.
-        ///////////////////////////////////////////////////////////// 
+        /////////////////////////////////////////////////////////////
+        
+        q = (struct PlantNode *)calloc(1,sizeof(struct PlantNode));
+        q->x_ang=drand48()*X_angle;
+        q->z_ang=drand48()*Z_angle;
+        q->scl=scale_mult;
+        q->left=NULL;
+        q->right=NULL;
+
+        
+        r = (struct PlantNode *)calloc(1,sizeof(struct PlantNode));
+        r->x_ang=drand48()*X_angle;
+        r->z_ang=drand48()*Z_angle;
+        r->scl=scale_mult;
+        r->left=NULL;
+        r->right=NULL;
+        
+        if (dice<=Paaa)
+        {
+            // Selected rule a -> aa
+            q->type='a';
+            r->type='a';
+        }
+        else if (dice<=(Paaa+Paab))
+        {
+            // Selected rule a -> ab
+            q->type='a';
+            r->type='b';
+        }
+        else if (dice<=(Paaa+Paab+Paac))
+        {
+            // Selected rule a -> ac
+            q->type='a';
+            r->type='c';
+        }
+        else if (dice<=(Paaa+Paab+Paac+Paad))
+        {
+            // Selected rule a -> ad
+            q->type='a';
+            r->type='d';
+        }
+        else        {
+            // Selected rule a -> cd
+            q->type='c';
+            r->type='d';
+        }
     }
     else if (p->type=='b')
     {
@@ -661,10 +789,11 @@ int main(int argc, char** argv)
         if (Z_angle>360) Z_angle=360;
         if (scale_mult<.75) scale_mult=.75;
         if (scale_mult>.99) scale_mult=.99;
-        Paab=Paab/(Paab+Paac+Paad+Pacd);
-        Paac=Paac/(Paab+Paac+Paad+Pacd);
-        Paad=Paad/(Paab+Paac+Paad+Pacd);
-        Pacd=Pacd/(Paab+Paac+Paad+Pacd);
+        Paaa=Paaa/(Paaa+Paab+Paac+Paad+Pacd);
+        Paab=Paab/(Paaa+Paab+Paac+Paad+Pacd);
+        Paac=Paac/(Paaa+Paab+Paac+Paad+Pacd);
+        Paad=Paad/(Paaa+Paab+Paac+Paad+Pacd);
+        Pacd=Pacd/(Paaa+Paab+Paac+Paad+Pacd);
         Pba=Pba/(Pba+Pbc+Pbd);
         Pbc=Pbc/(Pba+Pbc+Pbd);
         Pbd=Pbd/(Pba+Pbc+Pbd);
@@ -725,6 +854,8 @@ int main(int argc, char** argv)
     //        randomly in X,Y, but at the correct height for
     //        the corresponding location in the surface grid.
     //////////////////////////////////////////////////////////////
+    
+    DistributePlants();
 
     // Intialize global transformation variables and GLUI    
     global_Z=0;
@@ -837,6 +968,9 @@ void setupUI()
 
     ImGui::SetWindowFocus();
     ImGui::ColorEdit3("clear color", (float*)&clear_color);
+    
+    ImGui::SliderFloat("rotation", &global_Z, -180, 180);
+    ImGui::SliderFloat("zoom", &global_scale, 0, 20);
 
     // Add "Quit" button
     if(ImGui::Button("Quit")) {
