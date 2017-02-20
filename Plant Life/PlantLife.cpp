@@ -161,6 +161,10 @@ void Divide(Vec3 coord[GRID_RESOLVE][GRID_RESOLVE], float maxHeight, int size, f
 void DistributePlants(void);
 float SurfaceHeightAtLocation(float x, float y);
 
+// Helper functions
+void curvedTexturedPlaneVert(int layers, float curve, float length, float width);
+void curvedTexturedPlaneHori(int layers, float curve, float length, float width);
+
 /**************************************************************************
  Program Code starts
 **************************************************************************/
@@ -488,9 +492,7 @@ void LeafSection(void)
     // Draws a single leaf, along the current local Z axis
     // Note that we draw a little stem before the actual leaf.
     StemSection();
-    glColor4f(1.0, 1.0, 1.0, 1.0);
-    glTranslatef(0, 0, 1);
-    glRotatef(30, 1, 0, 0);
+    glTranslatef(0, 0, 1);  // translate to top of the stem
 
     ////////////////////////////////////////////////////////////
     // TODO Draw your own leaf design.
@@ -546,36 +548,13 @@ void LeafSection(void)
 
     ///////////////////////////////////////////////////////////
     // DO YOUR DRAWING WORK HERE!!!!
-    ///////////////////////////////////////////////////////////
-    
+    glColor4f(1.0, 1.0, 1.0, 1.0);
     glPushMatrix();
-    glTranslatef(0.05, 0.0, -0.05);
     
-    int leafLayers = 100;
-    for (int i = 0; i < leafLayers; i++) {
-        if (i > 0) {
-            glTranslatef(0, 0, 0.7/leafLayers);
-            glRotatef(1, 1, 0, 0);
-        }
-        
-        float startProgress = (float)i/leafLayers;
-        float endProgress = (float)(i+1)/leafLayers;
-        
-        glBegin(GL_QUADS);
-        glNormal3f(0, 1, 0);
-        
-        glTexCoord2f(1.0, 1.0-startProgress); glVertex3f(0.5, 0.0, 0.0);
-        glTexCoord2f(1.0, 1.0-endProgress); glVertex3f(0.5, 0.0, 0.7/leafLayers);
-        glTexCoord2f(0.0, 1.0-endProgress); glVertex3f(-0.5, 0.0, 0.7/leafLayers);
-        glTexCoord2f(0.0, 1.0-startProgress); glVertex3f(-0.5, 0.0, 0.0);
-        
-        glTexCoord2f(0.0, 1.0-startProgress); glVertex3f(-0.5, 0.0, 0.0);
-        glTexCoord2f(0.0, 1.0-endProgress); glVertex3f(-0.5, 0.0, 0.7/leafLayers);
-        glTexCoord2f(1.0, 1.0-endProgress); glVertex3f(0.5, 0.0, 0.7/leafLayers);
-        glTexCoord2f(1.0, 1.0-startProgress); glVertex3f(0.5, 0.0, 0.0);
-        
-        glEnd();
-    }
+    glTranslatef(0.05, 0, -0.05);
+    glRotatef(30, 1, 0, 0);
+    
+    curvedTexturedPlaneVert(100, 100, 0.7, 1);
     
     glPopMatrix();
 
@@ -637,7 +616,15 @@ void FlowerSection()
     /////////////////////////////////////////////////////////////
     // DO YOUR DRAWING WORK HERE!!
     /////////////////////////////////////////////////////////////
-
+    glColor4f(1.0, 1.0, 1.0, 1.0);
+    glPushMatrix();
+    
+    glTranslatef(0.0, 0.0, 0.0);
+    
+    curvedTexturedPlaneHori(100, 200, 0.7, 1);
+    
+    glPopMatrix();
+    
     // Disable texture mapping
     if (textures_on)
     {
@@ -950,7 +937,7 @@ int main(int argc, char** argv)
         {
             leaf_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/leaf_normal.ppm",&l_sx,&l_sy);	// Evidently, you must change this to be
                                         // your leaf texture image in .ppm format!
-            petal_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/flower_fall.ppm",&p_sx,&p_sy);	// Similarly, set this to be your petal
+            petal_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/petal_rose.ppm",&p_sx,&p_sy);	// Similarly, set this to be your petal
                                         // texture image.
             if (!leaf_texture||!petal_texture)
             {
@@ -1347,4 +1334,73 @@ void KeyboardPress(unsigned char key, int x, int y) {
 }
 void KeyboardPressUp(unsigned char key, int x, int y) {
     ImGui_ImplGlut_KeyUpCallback(key,x,y);
+}
+
+void curvedTexturedPlaneVert(int layers, float curve, float length, float width) {
+    glPushMatrix();
+    float trans = length/layers;
+    float rot = curve/layers;
+    
+    for (int i = 0; i < layers; i++) {
+        if (i > 0) {
+            glTranslatef(0, 0, trans);
+            glRotatef(rot, 1, 0, 0);
+        }
+        
+        float start = (float)i/layers;
+        float end = (float)(i+1)/layers;
+            
+        glBegin(GL_QUADS);
+        glNormal3f(0, 1, 0);
+        
+        glTexCoord2f(1.0, 1.0-start); glVertex3f(width/2, 0.0, 0.0);
+        glTexCoord2f(1.0, 1.0-end); glVertex3f(width/2, 0.0, trans);
+        glTexCoord2f(0.0, 1.0-end); glVertex3f(-width/2, 0.0, trans);
+        glTexCoord2f(0.0, 1.0-start); glVertex3f(-width/2, 0.0, 0.0);
+        
+        glTexCoord2f(0.0, 1.0-start); glVertex3f(-width/2, 0.0, 0.0);
+        glTexCoord2f(0.0, 1.0-end); glVertex3f(-width/2, 0.0, trans);
+        glTexCoord2f(1.0, 1.0-end); glVertex3f(width/2, 0.0, trans);
+        glTexCoord2f(1.0, 1.0-start); glVertex3f(width/2, 0.0, 0.0);
+        
+        glEnd();
+    }
+    glPopMatrix();
+}
+
+void curvedTexturedPlaneHori(int layers, float curve, float length, float width) {
+    glPushMatrix();
+    float trans = length/layers;
+    float rot = curve/layers;
+    
+    for (int i = 0; i < layers/2; i++) {
+        glRotatef(rot, 0, 0, 1);
+        glTranslatef(-trans, 0, 0);
+    }
+    
+    for (int i = 0; i < layers; i++) {
+        if (i > 0) {
+            glTranslatef(trans, 0, 0);
+            glRotatef(-rot, 0, 0, 1);
+        }
+        
+        float start = (float)i/layers;
+        float end = (float)(i+1)/layers;
+        
+        glBegin(GL_QUADS);
+        glNormal3f(0, 1, 0);
+        
+        glTexCoord2f(1.0-start, 1.0); glVertex3f(trans, 0.0, 0.0);
+        glTexCoord2f(1.0-start, 0.0); glVertex3f(trans, 0.0, length);
+        glTexCoord2f(1.0-end, 0.0); glVertex3f(0.0, 0.0, length);
+        glTexCoord2f(1.0-end, 1.0); glVertex3f(0.0, 0.0, 0.0);
+        
+        glTexCoord2f(1.0-end, 1.0); glVertex3f(0.0, 0.0, 0.0);
+        glTexCoord2f(1.0-end, 0.0); glVertex3f(0.0, 0.0, length);
+        glTexCoord2f(1.0-start, 0.0); glVertex3f(trans, 0.0, length);
+        glTexCoord2f(1.0-start, 1.0); glVertex3f(trans, 0.0, 0.0);
+        
+        glEnd();
+    }
+    glPopMatrix();
 }
