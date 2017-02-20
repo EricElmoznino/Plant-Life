@@ -57,6 +57,8 @@
 		075470911E543F5000CCA6AA /* Handout.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Handout.pdf; sourceTree = "<group>"; };
 		07D973D41E56C50A005A7033 /* Vec3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Vec3.cpp; sourceTree = "<group>"; };
 		07D973D51E56C50A005A7033 /* Vec3.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Vec3.hpp; sourceTree = "<group>"; };
+		E403714D1E5AA5CA00BE0561 /* leaf_fall.ppm */ = {isa = PBXFileReference; lastKnownFileType = text; path = leaf_fall.ppm; sourceTree = "<group>"; };
+		E403714E1E5AA5DD00BE0561 /* flower_fall.ppm */ = {isa = PBXFileReference; lastKnownFileType = text; path = flower_fall.ppm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +94,7 @@
 		075470691E54328B00CCA6AA /* Plant Life */ = {
 			isa = PBXGroup;
 			children = (
+				E403714F1E5AA5E600BE0561 /* Textures */,
 				07D973D31E56C4B6005A7033 /* Helpful types */,
 				075470911E543F5000CCA6AA /* Handout.pdf */,
 				075470711E54343200CCA6AA /* CHECKLIST */,
@@ -143,6 +146,15 @@
 				07D973D51E56C50A005A7033 /* Vec3.hpp */,
 			);
 			name = "Helpful types";
+			sourceTree = "<group>";
+		};
+		E403714F1E5AA5E600BE0561 /* Textures */ = {
+			isa = PBXGroup;
+			children = (
+				E403714E1E5AA5DD00BE0561 /* flower_fall.ppm */,
+				E403714D1E5AA5CA00BE0561 /* leaf_fall.ppm */,
+			);
+			name = Textures;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

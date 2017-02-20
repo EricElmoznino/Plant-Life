@@ -54,11 +54,6 @@ Vec3 Vec3::operator*(float scale) const {
 }
 
 Vec3 Vec3::linearInterpolate(const Vec3 &end, float progress) const {
-    if (progress < 0 || progress > 1.0) {
-        printf("Error: Vec3::linearInterpolate\nthe 'progress' argument must be in range [0.0, 1.0], but was %f\n", progress);
-        exit(1);
-    }
-    
     Vec3 difference = end - (*this);
     return (*this) + difference*progress;
 }

@@ -53,7 +53,7 @@ Program Code V3.0: F. Estrada, Sep 2012.
 #define SIDE 15.0           // Width of the surface - X and Y coordinates
                                 // will have values in [-side/2, side/2]
 #define MAX_HEIGHT SIDE/2.0 // Height range of the terrain
-#define ROUGHNESS 0.3       // Jaggedness of terrain
+#define ROUGHNESS 0.15       // Jaggedness of terrain
 
 /******************************************************************************
   Data structures section
@@ -62,6 +62,7 @@ Program Code V3.0: F. Estrada, Sep 2012.
 // hierarchical rendering we discussed in tutorial, and you used for A1!)
 struct PlantNode{
     char type;         // Node type, a=stem, b=stem, c=leaf, d=flower    - You may add your own types as needed
+    char tip;          // Used if node has no children and is a stem
     GLfloat z_ang;     // Rotation of this node w.r.t. parent's z-axis   - Rotates around the current stem direction
     GLfloat x_ang;     // Rotation of this node w.r.t. parent's x-axis   - Rotates away from current stem direction
     GLfloat scl;       // Local scale for this node
@@ -69,9 +70,6 @@ struct PlantNode{
     GLfloat f_c_R;     // Colour for this node's component - You can use it if needed, for example, to give
     GLfloat f_c_G;     // flowers different colours.
     GLfloat f_c_B;
-    GLint misc_A;	     // Misc variables A to C are UNDEFINED. You can use them any way you want to create
-    GLint misc_B;      // different types of structures for the stems, leafs, and flowers.
-    GLint misc_C;
 
     struct PlantNode *left;     // Left child for this node (NULL means the node is a terminal)
     struct PlantNode *right;    // Right child for this node (NULL means the node is a terminal)
@@ -105,7 +103,7 @@ int windowID;               // Glut window ID (for display)
 int Win[2];                 // window (x,y) size
 
 // GLUI interface variables
-GLfloat global_Z;	    // User controlled global rotation around Z
+GLfloat global_Z;           // User controlled global rotation around Z
 GLfloat global_scale;       // User controlled global scale factor
 
 // Command-line parameters - These affect the shape of the plants, and control the number of plants in the forest
@@ -230,6 +228,17 @@ void RenderSurfaceGrid(void)
             }
         }
     }
+    glEnd();
+    
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable( GL_BLEND );
+    glBegin(GL_POLYGON);
+    glColor4f(0.0, 0.25, 0.4, 0.75);
+    glNormal3f(0.0, 0.0, 1.0);
+    glVertex3f(-SIDE/2.0, -SIDE/2.0, MAX_HEIGHT/2.25);
+    glVertex3f(-SIDE/2.0, SIDE/2.0, MAX_HEIGHT/2.25);
+    glVertex3f(SIDE/2.0, SIDE/2.0, MAX_HEIGHT/2.25);
+    glVertex3f(SIDE/2.0, -SIDE/2.0, MAX_HEIGHT/2.25);
     glEnd();
 }
 
@@ -428,12 +437,22 @@ void RenderPlant(struct PlantNode *p)
         // since nothing is drawn after.
         glPushMatrix();
         
-            glTranslatef(0, 0, 1);  // step has length 1 in current scale
-            
+            glTranslatef(0, 0, 1);  // stem has length 1 in current scale
+    
             // Draw children recursively as depth-first traversal
             RenderPlant(p->left);
             RenderPlant(p->right);
-        
+    
+            // If this is the tip of a stem with no children, draw a leaf or flower
+            if ((p->type == 'a' || p->type == 'b') &&
+                p->left == NULL && p->right == NULL) {
+                if (p->tip == 'c') {
+                    LeafSection();
+                } else if (p->tip == 'd') {
+                    FlowerSection();
+                }
+            }
+    
         glPopMatrix();
     
     glPopMatrix();
@@ -468,9 +487,9 @@ void LeafSection(void)
 {
     // Draws a single leaf, along the current local Z axis
     // Note that we draw a little stem before the actual leaf.
-    glColor3f(.25,1,.1);
     StemSection();
-    // Perhaps you should translate now? :)
+    glTranslatef(0, 0, 1);
+    glRotatef(30, 1, 0, 0);
 
     ////////////////////////////////////////////////////////////
     // TODO Draw your own leaf design.
@@ -512,6 +531,9 @@ void LeafSection(void)
         // Enable Alpha-blending
         glEnable (GL_BLEND);
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // Don't let transparent pixels update the depth buffer
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_GREATER, 0.5);
         glEnable(GL_CULL_FACE);
         glBindTexture(GL_TEXTURE_2D,l_texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -524,10 +546,26 @@ void LeafSection(void)
     ///////////////////////////////////////////////////////////
     // DO YOUR DRAWING WORK HERE!!!!
     ///////////////////////////////////////////////////////////
+    
+    glPushMatrix();
+    glTranslatef(0.05, 0.0, -0.05);
+    glBegin(GL_QUADS);
+    glNormal3f(0, 1, 0);
+    glTexCoord2f(1.0, 1.0); glVertex3f(0.5, 0.0, 0.0);
+    glTexCoord2f(1.0, 0.0); glVertex3f(0.5, 0.0, 0.7);
+    glTexCoord2f(0.0, 0.0); glVertex3f(-0.5, 0.0, 0.7);
+    glTexCoord2f(0.0, 1.0); glVertex3f(-0.5, 0.0, 0.0);
+    glTexCoord2f(0.0, 1.0); glVertex3f(-0.5, 0.0, 0.0);
+    glTexCoord2f(0.0, 0.0); glVertex3f(-0.5, 0.0, 0.7);
+    glTexCoord2f(1.0, 0.0); glVertex3f(0.5, 0.0, 0.7);
+    glTexCoord2f(1.0, 1.0); glVertex3f(0.5, 0.0, 0.0);
+    glEnd();
+    glPopMatrix();
 
     // Disable texture mapping
     if (textures_on)
     {
+        glDisable(GL_ALPHA_TEST);
         glDisable(GL_CULL_FACE);
         glDisable(GL_TEXTURE_2D);
         glDisable (GL_BLEND);
@@ -567,6 +605,9 @@ void FlowerSection()
         // Enable Alpha-blending
         glEnable (GL_BLEND);
         glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // Don't let transparent pixels update the depth buffer
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_GREATER, 0.5);
         glEnable(GL_CULL_FACE);
         glBindTexture(GL_TEXTURE_2D,p_texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -583,6 +624,7 @@ void FlowerSection()
     // Disable texture mapping
     if (textures_on)
     {
+        glDisable(GL_ALPHA_TEST);
         glDisable(GL_CULL_FACE);
         glDisable(GL_TEXTURE_2D);
         glDisable (GL_BLEND);
@@ -708,6 +750,7 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
     q=r=NULL;
 
     if (p==NULL) return;                     // Reached a terminal
+    p->tip=drand48() < 0.5 ? 'c' : 'd';      // Random leaf or flower tip
     if (level>=n_levels) return;             // Reached maximum plant height
     if (p->type=='c'||p->type=='d') return;  // c and d type nodes are terminal nodes as well
 
@@ -864,7 +907,12 @@ int main(int argc, char** argv)
         if (Win[0]>1024) Win[0]=1024;
         if (Win[1]<250) Win[1]=250;
         if (Win[1]>1024) Win[1]=1024;
-
+        
+        // Intialize global transformation variables and GLUI
+        global_Z=0;
+        global_scale=15;
+        ImGui_ImplGlut_Init(false);
+        
         ////////////////////////////////////////////////
         // CRUNCHY - If you are going to use textures
         //           for your leafs and flowers, update
@@ -880,12 +928,12 @@ int main(int argc, char** argv)
         //           submit your texture images along
         //           with your completed code.
         ////////////////////////////////////////////////
-        textures_on=0;		// Set to 1 to enable texturing
+        textures_on=1;		// Set to 1 to enable texturing
         if (textures_on)
         {
-            leaf_texture=readPPM("leaf_texture_image.ppm",&l_sx,&l_sy);	// Evidently, you must change this to be
+            leaf_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/leaf_fall.ppm",&l_sx,&l_sy);	// Evidently, you must change this to be
                                         // your leaf texture image in .ppm format!
-            petal_texture=readPPM("petal_texture_image.ppm",&p_sx,&p_sy);	// Similarly, set this to be your petal
+            petal_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/flower_fall.ppm",&p_sx,&p_sy);	// Similarly, set this to be your petal
                                         // texture image.
             if (!leaf_texture||!petal_texture)
             {
@@ -914,12 +962,7 @@ int main(int argc, char** argv)
     //////////////////////////////////////////////////////////////
     
     DistributePlants();
-
-    // Intialize global transformation variables and GLUI    
-    global_Z=0;
-    global_scale=15;
-    ImGui_ImplGlut_Init(false);
-
+    
     // Invoke the standard GLUT main event loop
     glutMainLoop();
     ImGui_ImplGlut_Shutdown();
@@ -1160,7 +1203,7 @@ void WindowDisplay(void)
     //    If you are implementing this and get stuck, come and 
     //     talk to me.
     ///////////////////////////////////////////////////////////////
-
+    
     if (Opening_animation) {AnimatedRenderPlant(); Opening_animation=0;}
     else
     {
