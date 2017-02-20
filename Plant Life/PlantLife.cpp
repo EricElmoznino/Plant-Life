@@ -488,6 +488,7 @@ void LeafSection(void)
     // Draws a single leaf, along the current local Z axis
     // Note that we draw a little stem before the actual leaf.
     StemSection();
+    glColor4f(1.0, 1.0, 1.0, 1.0);
     glTranslatef(0, 0, 1);
     glRotatef(30, 1, 0, 0);
 
@@ -549,17 +550,33 @@ void LeafSection(void)
     
     glPushMatrix();
     glTranslatef(0.05, 0.0, -0.05);
-    glBegin(GL_QUADS);
-    glNormal3f(0, 1, 0);
-    glTexCoord2f(1.0, 1.0); glVertex3f(0.5, 0.0, 0.0);
-    glTexCoord2f(1.0, 0.0); glVertex3f(0.5, 0.0, 0.7);
-    glTexCoord2f(0.0, 0.0); glVertex3f(-0.5, 0.0, 0.7);
-    glTexCoord2f(0.0, 1.0); glVertex3f(-0.5, 0.0, 0.0);
-    glTexCoord2f(0.0, 1.0); glVertex3f(-0.5, 0.0, 0.0);
-    glTexCoord2f(0.0, 0.0); glVertex3f(-0.5, 0.0, 0.7);
-    glTexCoord2f(1.0, 0.0); glVertex3f(0.5, 0.0, 0.7);
-    glTexCoord2f(1.0, 1.0); glVertex3f(0.5, 0.0, 0.0);
-    glEnd();
+    
+    int leafLayers = 100;
+    for (int i = 0; i < leafLayers; i++) {
+        if (i > 0) {
+            glTranslatef(0, 0, 0.7/leafLayers);
+            glRotatef(1, 1, 0, 0);
+        }
+        
+        float startProgress = (float)i/leafLayers;
+        float endProgress = (float)(i+1)/leafLayers;
+        
+        glBegin(GL_QUADS);
+        glNormal3f(0, 1, 0);
+        
+        glTexCoord2f(1.0, 1.0-startProgress); glVertex3f(0.5, 0.0, 0.0);
+        glTexCoord2f(1.0, 1.0-endProgress); glVertex3f(0.5, 0.0, 0.7/leafLayers);
+        glTexCoord2f(0.0, 1.0-endProgress); glVertex3f(-0.5, 0.0, 0.7/leafLayers);
+        glTexCoord2f(0.0, 1.0-startProgress); glVertex3f(-0.5, 0.0, 0.0);
+        
+        glTexCoord2f(0.0, 1.0-startProgress); glVertex3f(-0.5, 0.0, 0.0);
+        glTexCoord2f(0.0, 1.0-endProgress); glVertex3f(-0.5, 0.0, 0.7/leafLayers);
+        glTexCoord2f(1.0, 1.0-endProgress); glVertex3f(0.5, 0.0, 0.7/leafLayers);
+        glTexCoord2f(1.0, 1.0-startProgress); glVertex3f(0.5, 0.0, 0.0);
+        
+        glEnd();
+    }
+    
     glPopMatrix();
 
     // Disable texture mapping
@@ -931,7 +948,7 @@ int main(int argc, char** argv)
         textures_on=1;		// Set to 1 to enable texturing
         if (textures_on)
         {
-            leaf_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/leaf_fall.ppm",&l_sx,&l_sy);	// Evidently, you must change this to be
+            leaf_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/leaf_normal.ppm",&l_sx,&l_sy);	// Evidently, you must change this to be
                                         // your leaf texture image in .ppm format!
             petal_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/flower_fall.ppm",&p_sx,&p_sy);	// Similarly, set this to be your petal
                                         // texture image.
@@ -1309,7 +1326,7 @@ unsigned char *readPPM(const char *name, int *sx, int *sy)
                 if (*(tmp+((i+(j*sizx))*3)+0)==255 && *(tmp+((i+(j*sizx))*3)+1)==255 && *(tmp+((i+(j*sizx))*3)+2)==255)
                     *(im+((i+(j*sizx))*4)+3)=0;
                 else
-                    *(im+((i+(j*sizx))*4)+3)=192;
+                    *(im+((i+(j*sizx))*4)+3)=255;
             }
 
     free(tmp);
