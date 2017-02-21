@@ -49,7 +49,7 @@ Program Code V3.0: F. Estrada, Sep 2012.
 #include "Vec3.hpp"
 
 #define MAX_PLANTS 25		// Maximum number of plants for plant forests
-#define GRID_RESOLVE 257	// Size of the surface grid
+#define GRID_RESOLVE 129	// Size of the surface grid
 #define SIDE 15.0           // Width of the surface - X and Y coordinates
                                 // will have values in [-side/2, side/2]
 #define MAX_HEIGHT SIDE/2.0 // Height range of the terrain
@@ -62,7 +62,6 @@ Program Code V3.0: F. Estrada, Sep 2012.
 // hierarchical rendering we discussed in tutorial, and you used for A1!)
 struct PlantNode{
     char type;         // Node type, a=stem, b=stem, c=leaf, d=flower    - You may add your own types as needed
-    char tip;          // Used if node has no children and is a stem
     GLfloat z_ang;     // Rotation of this node w.r.t. parent's z-axis   - Rotates around the current stem direction
     GLfloat x_ang;     // Rotation of this node w.r.t. parent's x-axis   - Rotates away from current stem direction
     GLfloat scl;       // Local scale for this node
@@ -80,6 +79,29 @@ struct PlantNode{
     // it's doing!
 };
 
+enum Season {SUMMER = 0, FALL = 1, WINTER = 2, SPRING = 3};
+struct SeasonState{
+    Season season;
+    float progress;
+    float speed;
+    
+    Vec3 backgroundColor;
+    
+    Vec3 pondColor;
+    float pondAlpha;
+};
+const struct SeasonConstants{
+    Vec3 summerColor = Vec3(0.57, 0.73, 1.0);
+    Vec3 fallColor = Vec3(0.97, 0.78, 0.66);
+    Vec3 winterColor = Vec3(0.93, 0.94, 0.97);
+    Vec3 springColor = Vec3(0.76, 0.90, 0.82);
+    
+    Vec3 water = Vec3(0.0, 0.25, 0.4);
+    float waterAlpha = 0.75;
+    Vec3 ice = Vec3(0.69, 0.78, 0.86);
+    float iceAlpha = 0.95;
+} seasonConstants{};
+
 /******************************************************************************
   Global data
 ******************************************************************************/
@@ -89,7 +111,8 @@ Vec3 ForestXYZ[MAX_PLANTS];     // Location of plants in the forest as (x, y, z)
 Vec3 GroundXYZ[GRID_RESOLVE][GRID_RESOLVE];     // Array to store ground surface points as (x,y,z) points
 Vec3 GroundNormals[GRID_RESOLVE][GRID_RESOLVE]; // Array to hold normal vectors at vertices (will use normal to triangle
                                                    // defined by the vertices at [i][j], [i+1][j], and [i][j+1]
-ImVec4 clear_color = ImColor(0.57f,0.73f,1.0f,1.0f);
+
+SeasonState timeOfYear;         // Structure to keep track of the season and trainsitions
 
 // Texture data
 int textures_on;				// Flag to indicate texturing should be enabled for leafs/flowers
@@ -234,10 +257,11 @@ void RenderSurfaceGrid(void)
     }
     glEnd();
     
+    // Make the water
+    glColor4f(timeOfYear.pondColor.x, timeOfYear.pondColor.y, timeOfYear.pondColor.z, timeOfYear.pondAlpha);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable( GL_BLEND );
     glBegin(GL_POLYGON);
-    glColor4f(0.0, 0.25, 0.4, 0.75);
     glNormal3f(0.0, 0.0, 1.0);
     glVertex3f(-SIDE/2.0, -SIDE/2.0, MAX_HEIGHT/2.25);
     glVertex3f(-SIDE/2.0, SIDE/2.0, MAX_HEIGHT/2.25);
@@ -447,14 +471,10 @@ void RenderPlant(struct PlantNode *p)
             RenderPlant(p->left);
             RenderPlant(p->right);
     
-            // If this is the tip of a stem with no children, draw a leaf or flower
+            // If this is the tip of a stem with no children, draw a  flower
             if ((p->type == 'a' || p->type == 'b') &&
                 p->left == NULL && p->right == NULL) {
-                if (p->tip == 'c') {
-                    LeafSection();
-                } else if (p->tip == 'd') {
-                    FlowerSection();
-                }
+                FlowerSection();
             }
     
         glPopMatrix();
@@ -554,7 +574,7 @@ void LeafSection(void)
     glTranslatef(0.05, 0, -0.05);
     glRotatef(30, 1, 0, 0);
     
-    curvedTexturedPlaneVert(100, 100, 0.7, 1);
+    curvedTexturedPlaneVert(50, 100, 0.7, 1);
     
     glPopMatrix();
 
@@ -619,9 +639,18 @@ void FlowerSection()
     glColor4f(1.0, 1.0, 1.0, 1.0);
     glPushMatrix();
     
-    glTranslatef(0.0, 0.0, 0.0);
+    glTranslatef(0.02, 0.0, -0.1);
     
-    curvedTexturedPlaneHori(100, 200, 0.7, 1);
+    float curvature = 150;
+    for (int i = 0; i < 4; i++) {
+        glRotatef(90, 0.0, 0.0, 1.0);
+        glPushMatrix();
+//        curvature -= 200;
+        glTranslatef(0.0, 0.05, 0.0);
+        glRotatef(-25, 1, 0, 0);
+        curvedTexturedPlaneHori(50, curvature, 0.7, 1);
+        glPopMatrix();
+    }
     
     glPopMatrix();
     
@@ -754,7 +783,6 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
     q=r=NULL;
 
     if (p==NULL) return;                     // Reached a terminal
-    p->tip=drand48() < 0.5 ? 'c' : 'd';      // Random leaf or flower tip
     if (level>=n_levels) return;             // Reached maximum plant height
     if (p->type=='c'||p->type=='d') return;  // c and d type nodes are terminal nodes as well
 
@@ -917,6 +945,11 @@ int main(int argc, char** argv)
         global_scale=15;
         ImGui_ImplGlut_Init(false);
         
+        // Initialize seasons
+        timeOfYear.season = SUMMER;
+        timeOfYear.progress = 0.0;
+        timeOfYear.speed = 1.0/300;
+        
         ////////////////////////////////////////////////
         // CRUNCHY - If you are going to use textures
         //           for your leafs and flowers, update
@@ -1072,7 +1105,7 @@ void setupUI()
     ///////////////////////////////////////////////////////////
 
     ImGui::SetWindowFocus();
-    ImGui::ColorEdit3("clear color", (float*)&clear_color);
+    ImGui::ColorEdit3("background color", (float*)&timeOfYear.backgroundColor);
     
     ImGui::SliderFloat("rotation", &global_Z, -180, 180);
     ImGui::SliderFloat("zoom", &global_scale, 0, 20);
@@ -1126,9 +1159,46 @@ void WindowDisplay(void)
     static int Opening_animation=0;    
 //    static int Opening_animation=1;	// Comment the line above and uncomment this line
                                         // if you implemented the plant growing animation.
-
+    
+    // Update the season state
+    switch (timeOfYear.season) {
+        case SUMMER:
+            timeOfYear.backgroundColor = seasonConstants.summerColor
+                .linearInterpolate(seasonConstants.fallColor, timeOfYear.progress);
+            timeOfYear.pondColor = seasonConstants.water;
+            timeOfYear.pondAlpha = seasonConstants. waterAlpha;
+            break;
+        case FALL:
+            timeOfYear.backgroundColor = seasonConstants.fallColor
+                .linearInterpolate(seasonConstants.winterColor, timeOfYear.progress);
+            timeOfYear.pondColor = seasonConstants.water
+                .linearInterpolate(seasonConstants.ice, timeOfYear.progress);
+            timeOfYear.pondAlpha = seasonConstants.waterAlpha +
+                timeOfYear.progress*(seasonConstants.iceAlpha - seasonConstants.waterAlpha);
+            break;
+        case WINTER:
+            timeOfYear.backgroundColor = seasonConstants.winterColor
+                .linearInterpolate(seasonConstants.springColor, timeOfYear.progress);
+            timeOfYear.pondColor = seasonConstants.ice
+                .linearInterpolate(seasonConstants.water, timeOfYear.progress);
+            timeOfYear.pondAlpha = seasonConstants.iceAlpha +
+                timeOfYear.progress*(seasonConstants.waterAlpha - seasonConstants.iceAlpha);
+            break;
+        case SPRING:
+            timeOfYear.backgroundColor = seasonConstants.springColor
+                .linearInterpolate(seasonConstants.summerColor, timeOfYear.progress);
+            timeOfYear.pondColor = seasonConstants.water;
+            timeOfYear.pondAlpha = seasonConstants. waterAlpha;
+            break;
+    }
+    timeOfYear.progress += timeOfYear.speed;
+    if (timeOfYear.progress >= 1.0) {
+        timeOfYear.progress = 0.0;
+        timeOfYear.season = (Season)((timeOfYear.season + 1) % 4);
+    }
+    
     // Clear colour buffer and Z-buffer
-    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    glClearColor(timeOfYear.backgroundColor.x, timeOfYear.backgroundColor.y, timeOfYear.backgroundColor.z, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // Setup the model-view transformation matrix
     glMatrixMode(GL_MODELVIEW);
