@@ -89,17 +89,29 @@ struct SeasonState{
     
     Vec3 pondColor;
     float pondAlpha;
+    
+    Vec3 trothColor;
+    Vec3 peakColor;
 };
 const struct SeasonConstants{
-    Vec3 summerColor = Vec3(0.57, 0.73, 1.0);
-    Vec3 fallColor = Vec3(0.97, 0.78, 0.66);
-    Vec3 winterColor = Vec3(0.93, 0.94, 0.97);
-    Vec3 springColor = Vec3(0.76, 0.90, 0.82);
+    Vec3 summerSky = Vec3(0.57, 0.73, 1.0);
+    Vec3 fallSky = Vec3(0.97, 0.78, 0.66);
+    Vec3 winterSky = Vec3(0.93, 0.94, 0.97);
+    Vec3 springSky = Vec3(0.76, 0.90, 0.82);
     
     Vec3 water = Vec3(0.0, 0.25, 0.4);
     float waterAlpha = 0.75;
     Vec3 ice = Vec3(0.69, 0.78, 0.86);
     float iceAlpha = 0.95;
+    
+    Vec3 summerTroth = Vec3(0.2, 0.2, 0.3);
+    Vec3 summerPeak = Vec3(0.6, 0.8, 0.3);
+    Vec3 fallTroth = Vec3(0.2, 0.2, 0.3);
+    Vec3 fallPeak = Vec3(0.62, 0.45, 0.15);
+    Vec3 winterTroth = Vec3(0.50, 0.52, 0.59);
+    Vec3 winterPeak = Vec3(0.79, 0.82, 0.87);
+    Vec3 springTroth = Vec3(0.77, 0.64, 0.66);
+    Vec3 springPeak = Vec3(0.84, 0.88, 0.45);
 } seasonConstants{};
 
 /******************************************************************************
@@ -221,16 +233,13 @@ void RenderSurfaceGrid(void)
         }
     }
     
-    Vec3 trothColor = Vec3(0.2, 0.2, 0.3);
-    Vec3 peakColor = Vec3(0.6, 0.8, 0.3);
-    
     glBegin(GL_TRIANGLES);
     for (int i = 0; i < GRID_RESOLVE; i++) {
         for (int j = 0; j < GRID_RESOLVE; j++) {
             if (i > 0 && j > 0) {   // draw back triangle
                 float averageHeight = (GroundXYZ[i][j].z + GroundXYZ[i-1][j].z + GroundXYZ[i][j-1].z)/3;
                 float progress = (averageHeight - minHeight)/(maxHeight - minHeight);
-                Vec3 color = trothColor.linearInterpolate(peakColor, progress);
+                Vec3 color = timeOfYear.trothColor.linearInterpolate(timeOfYear.peakColor, progress);
                 glColor4f(color.x, color.y, color.z, 1.0);
                 
                 glNormal3f(GroundNormals[i][j].x, GroundNormals[i][j].y, GroundNormals[i][j].z);
@@ -243,7 +252,7 @@ void RenderSurfaceGrid(void)
             if (i < GRID_RESOLVE-1 && j < GRID_RESOLVE-1) { // draw front triangle
                 float averageHeight = (GroundXYZ[i][j].z + GroundXYZ[i+1][j].z + GroundXYZ[i][j+1].z) * 0.33;
                 float progress = (averageHeight - minHeight)/(maxHeight - minHeight);
-                Vec3 color = trothColor.linearInterpolate(peakColor, progress);
+                Vec3 color = timeOfYear.trothColor.linearInterpolate(timeOfYear.peakColor, progress);
                 glColor4f(color.x, color.y, color.z, 1.0);
                 
                 glNormal3f(GroundNormals[i][j].x, GroundNormals[i][j].y, GroundNormals[i][j].z);
@@ -1163,32 +1172,48 @@ void WindowDisplay(void)
     // Update the season state
     switch (timeOfYear.season) {
         case SUMMER:
-            timeOfYear.backgroundColor = seasonConstants.summerColor
-                .linearInterpolate(seasonConstants.fallColor, timeOfYear.progress);
+            timeOfYear.backgroundColor = seasonConstants.summerSky
+                .linearInterpolate(seasonConstants.fallSky, timeOfYear.progress);
             timeOfYear.pondColor = seasonConstants.water;
             timeOfYear.pondAlpha = seasonConstants. waterAlpha;
+            timeOfYear.trothColor = seasonConstants.summerTroth
+                .linearInterpolate(seasonConstants.fallTroth, timeOfYear.progress);
+            timeOfYear.peakColor = seasonConstants.summerPeak
+                .linearInterpolate(seasonConstants.fallPeak, timeOfYear.progress);
             break;
         case FALL:
-            timeOfYear.backgroundColor = seasonConstants.fallColor
-                .linearInterpolate(seasonConstants.winterColor, timeOfYear.progress);
+            timeOfYear.backgroundColor = seasonConstants.fallSky
+                .linearInterpolate(seasonConstants.winterSky, timeOfYear.progress);
             timeOfYear.pondColor = seasonConstants.water
                 .linearInterpolate(seasonConstants.ice, timeOfYear.progress);
             timeOfYear.pondAlpha = seasonConstants.waterAlpha +
-                timeOfYear.progress*(seasonConstants.iceAlpha - seasonConstants.waterAlpha);
+            timeOfYear.progress*(seasonConstants.iceAlpha - seasonConstants.waterAlpha);
+            timeOfYear.trothColor = seasonConstants.fallTroth
+                .linearInterpolate(seasonConstants.winterTroth, timeOfYear.progress);
+            timeOfYear.peakColor = seasonConstants.fallPeak
+                .linearInterpolate(seasonConstants.winterPeak, timeOfYear.progress);
             break;
         case WINTER:
-            timeOfYear.backgroundColor = seasonConstants.winterColor
-                .linearInterpolate(seasonConstants.springColor, timeOfYear.progress);
+            timeOfYear.backgroundColor = seasonConstants.winterSky
+                .linearInterpolate(seasonConstants.springSky, timeOfYear.progress);
             timeOfYear.pondColor = seasonConstants.ice
                 .linearInterpolate(seasonConstants.water, timeOfYear.progress);
             timeOfYear.pondAlpha = seasonConstants.iceAlpha +
-                timeOfYear.progress*(seasonConstants.waterAlpha - seasonConstants.iceAlpha);
+            timeOfYear.progress*(seasonConstants.waterAlpha - seasonConstants.iceAlpha);
+            timeOfYear.trothColor = seasonConstants.winterTroth
+                .linearInterpolate(seasonConstants.springTroth, timeOfYear.progress);
+            timeOfYear.peakColor = seasonConstants.winterPeak
+                .linearInterpolate(seasonConstants.springPeak, timeOfYear.progress);
             break;
         case SPRING:
-            timeOfYear.backgroundColor = seasonConstants.springColor
-                .linearInterpolate(seasonConstants.summerColor, timeOfYear.progress);
+            timeOfYear.backgroundColor = seasonConstants.springSky
+                .linearInterpolate(seasonConstants.summerSky, timeOfYear.progress);
             timeOfYear.pondColor = seasonConstants.water;
             timeOfYear.pondAlpha = seasonConstants. waterAlpha;
+            timeOfYear.trothColor = seasonConstants.springTroth
+                .linearInterpolate(seasonConstants.summerTroth, timeOfYear.progress);
+            timeOfYear.peakColor = seasonConstants.springPeak
+                .linearInterpolate(seasonConstants.summerPeak, timeOfYear.progress);
             break;
     }
     timeOfYear.progress += timeOfYear.speed;
