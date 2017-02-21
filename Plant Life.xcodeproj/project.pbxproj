@@ -15,6 +15,7 @@
 		0754708E1E54353500CCA6AA /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0754708D1E54353500CCA6AA /* OpenGL.framework */; };
 		075470901E54353B00CCA6AA /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0754708F1E54353B00CCA6AA /* GLUT.framework */; };
 		07D973D61E56C50A005A7033 /* Vec3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 07D973D41E56C50A005A7033 /* Vec3.cpp */; };
+		E40371571E5C994D00BE0561 /* SeasonsManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E40371551E5C994D00BE0561 /* SeasonsManager.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -61,6 +62,8 @@
 		E40371511E5B613C00BE0561 /* leaf_maple.ppm */ = {isa = PBXFileReference; lastKnownFileType = text; path = leaf_maple.ppm; sourceTree = "<group>"; };
 		E40371521E5B637700BE0561 /* leaf_cartoon.ppm */ = {isa = PBXFileReference; lastKnownFileType = text; path = leaf_cartoon.ppm; sourceTree = "<group>"; };
 		E40371541E5BB0DD00BE0561 /* petal_rose.ppm */ = {isa = PBXFileReference; lastKnownFileType = text; path = petal_rose.ppm; sourceTree = "<group>"; };
+		E40371551E5C994D00BE0561 /* SeasonsManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SeasonsManager.cpp; sourceTree = "<group>"; };
+		E40371561E5C994D00BE0561 /* SeasonsManager.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SeasonsManager.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +147,8 @@
 		07D973D31E56C4B6005A7033 /* Helpful types */ = {
 			isa = PBXGroup;
 			children = (
+				E40371551E5C994D00BE0561 /* SeasonsManager.cpp */,
+				E40371561E5C994D00BE0561 /* SeasonsManager.hpp */,
 				07D973D41E56C50A005A7033 /* Vec3.cpp */,
 				07D973D51E56C50A005A7033 /* Vec3.hpp */,
 			);
@@ -219,6 +224,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E40371571E5C994D00BE0561 /* SeasonsManager.cpp in Sources */,
 				07D973D61E56C50A005A7033 /* Vec3.cpp in Sources */,
 				0754708A1E54343200CCA6AA /* Makefile in Sources */,
 				0754708B1E54343200CCA6AA /* PlantLife.cpp in Sources */,

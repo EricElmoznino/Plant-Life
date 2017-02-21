@@ -46,6 +46,7 @@ Program Code V3.0: F. Estrada, Sep 2012.
 #include <unistd.h>
 
 // Convenience classes
+#include "SeasonsManager.hpp"
 #include "Vec3.hpp"
 
 #define MAX_PLANTS 25		// Maximum number of plants for plant forests
@@ -54,6 +55,11 @@ Program Code V3.0: F. Estrada, Sep 2012.
                                 // will have values in [-side/2, side/2]
 #define MAX_HEIGHT SIDE/2.0 // Height range of the terrain
 #define ROUGHNESS 0.15       // Jaggedness of terrain
+#define WATER_COVER 0.3     // Amount of ground covered by water [0, 1]
+
+#define NUM_SNOWFLAKES 1000    // The number of snow flakes
+#define BASE_FLAKESPEED 0.01    // The average snow flake speed
+
 
 /******************************************************************************
   Data structures section
@@ -79,41 +85,12 @@ struct PlantNode{
     // it's doing!
 };
 
-bool seasons_enabled = true;
-enum Season {SUMMER = 0, FALL = 1, WINTER = 2, SPRING = 3};
-struct SeasonState{
-    Season season;
-    float progress;
+// Structure to hold data for a snow flake
+struct Snow {
+    Vec3 spawnPosition;
+    Vec3 curPosition;
     float speed;
-    
-    Vec3 backgroundColor;
-    
-    Vec3 pondColor;
-    float pondAlpha;
-    
-    Vec3 trothColor;
-    Vec3 peakColor;
 };
-const struct SeasonConstants{
-    Vec3 summerSky = Vec3(0.57, 0.73, 1.0);
-    Vec3 fallSky = Vec3(0.97, 0.78, 0.66);
-    Vec3 winterSky = Vec3(0.93, 0.94, 0.97);
-    Vec3 springSky = Vec3(0.76, 0.90, 0.82);
-    
-    Vec3 water = Vec3(0.0, 0.25, 0.4);
-    float waterAlpha = 0.75;
-    Vec3 ice = Vec3(0.69, 0.78, 0.86);
-    float iceAlpha = 0.95;
-    
-    Vec3 summerTroth = Vec3(0.2, 0.2, 0.3);
-    Vec3 summerPeak = Vec3(0.6, 0.8, 0.3);
-    Vec3 fallTroth = Vec3(0.2, 0.2, 0.3);
-    Vec3 fallPeak = Vec3(0.62, 0.45, 0.15);
-    Vec3 winterTroth = Vec3(0.50, 0.52, 0.59);
-    Vec3 winterPeak = Vec3(0.79, 0.82, 0.87);
-    Vec3 springTroth = Vec3(0.77, 0.64, 0.66);
-    Vec3 springPeak = Vec3(0.84, 0.88, 0.45);
-} seasonConstants{};
 
 /******************************************************************************
   Global data
@@ -125,7 +102,12 @@ Vec3 GroundXYZ[GRID_RESOLVE][GRID_RESOLVE];     // Array to store ground surface
 Vec3 GroundNormals[GRID_RESOLVE][GRID_RESOLVE]; // Array to hold normal vectors at vertices (will use normal to triangle
                                                    // defined by the vertices at [i][j], [i+1][j], and [i][j+1]
 
-SeasonState timeOfYear;         // Structure to keep track of the season and trainsitions
+SeasonsManager timeOfYear(1.0/300.0);   // Structure to keep track of the season and trainsitions
+bool seasons_enabled = true;            // Season transitions enabled by default
+
+Snow snowFlakes[NUM_SNOWFLAKES];                  // Array of snow flakes
+
+float water_height;
 
 // Texture data
 int textures_on;				// Flag to indicate texturing should be enabled for leafs/flowers
@@ -197,9 +179,13 @@ void Divide(Vec3 coord[GRID_RESOLVE][GRID_RESOLVE], float maxHeight, int size, f
 void DistributePlants(void);
 float SurfaceHeightAtLocation(float x, float y);
 
+// Snow
+void RenderSnow(void);
+
 // Helper functions
 void curvedTexturedPlaneVert(int layers, float curve, float length, float width);
 void curvedTexturedPlaneHori(int layers, float curve, float length, float width);
+float computeWaterLevelForCover(void);
 
 /**************************************************************************
  Program Code starts
@@ -240,7 +226,7 @@ void RenderSurfaceGrid(void)
             if (i > 0 && j > 0) {   // draw back triangle
                 float averageHeight = (GroundXYZ[i][j].z + GroundXYZ[i-1][j].z + GroundXYZ[i][j-1].z)/3;
                 float progress = (averageHeight - minHeight)/(maxHeight - minHeight);
-                Vec3 color = timeOfYear.trothColor.linearInterpolate(timeOfYear.peakColor, progress);
+                Vec3 color = timeOfYear.getGroundColor(progress);
                 glColor4f(color.x, color.y, color.z, 1.0);
                 
                 glNormal3f(GroundNormals[i][j].x, GroundNormals[i][j].y, GroundNormals[i][j].z);
@@ -253,7 +239,7 @@ void RenderSurfaceGrid(void)
             if (i < GRID_RESOLVE-1 && j < GRID_RESOLVE-1) { // draw front triangle
                 float averageHeight = (GroundXYZ[i][j].z + GroundXYZ[i+1][j].z + GroundXYZ[i][j+1].z) * 0.33;
                 float progress = (averageHeight - minHeight)/(maxHeight - minHeight);
-                Vec3 color = timeOfYear.trothColor.linearInterpolate(timeOfYear.peakColor, progress);
+                Vec3 color = timeOfYear.getGroundColor(progress);
                 glColor4f(color.x, color.y, color.z, 1.0);
                 
                 glNormal3f(GroundNormals[i][j].x, GroundNormals[i][j].y, GroundNormals[i][j].z);
@@ -268,15 +254,16 @@ void RenderSurfaceGrid(void)
     glEnd();
     
     // Make the water
-    glColor4f(timeOfYear.pondColor.x, timeOfYear.pondColor.y, timeOfYear.pondColor.z, timeOfYear.pondAlpha);
+    Vec3 waterColor = timeOfYear.getWaterColor();
+    glColor4f(waterColor.x, waterColor.y, waterColor.z, timeOfYear.getWaterAlpha());
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable( GL_BLEND );
     glBegin(GL_POLYGON);
     glNormal3f(0.0, 0.0, 1.0);
-    glVertex3f(-SIDE/2.0, -SIDE/2.0, MAX_HEIGHT/2.25);
-    glVertex3f(-SIDE/2.0, SIDE/2.0, MAX_HEIGHT/2.25);
-    glVertex3f(SIDE/2.0, SIDE/2.0, MAX_HEIGHT/2.25);
-    glVertex3f(SIDE/2.0, -SIDE/2.0, MAX_HEIGHT/2.25);
+    glVertex3f(-SIDE/2.0, -SIDE/2.0, water_height);
+    glVertex3f(-SIDE/2.0, SIDE/2.0, water_height);
+    glVertex3f(SIDE/2.0, SIDE/2.0, water_height);
+    glVertex3f(SIDE/2.0, -SIDE/2.0, water_height);
     glEnd();
 }
 
@@ -345,6 +332,11 @@ void MakeSurfaceGrid(void)
             // Find the cross product between the two vectors and store the unit normal
             GroundNormals[i][j] = v1.crossUnit(v2);
         }
+    
+    // Find the height above which 1-WATER_COVER lie. This is so
+    // that we can place the water level such that a WATER_COVER ratio
+    // covers the ground.
+    water_height = computeWaterLevelForCover();
 }
 
 void MidPointDisplacement(Vec3 coordinates[GRID_RESOLVE][GRID_RESOLVE], float maxHeight, float roughness) {
@@ -498,7 +490,8 @@ void StemSection(void)
     // I'm giving you this function already so you can at least see
     // the 'skeleton' of your plant to help debug the L-system.
     
-    glColor4f(0.39, 0.62, 0.31, 1.0);
+    Vec3 color = timeOfYear.getStemColor();
+    glColor4f(color.x, color.y, color.z, 1.0);
 
     // Create a quadrics object to make the stem
     GLUquadric *quadObject = gluNewQuadric();
@@ -578,7 +571,8 @@ void LeafSection(void)
 
     ///////////////////////////////////////////////////////////
     // DO YOUR DRAWING WORK HERE!!!!
-    glColor4f(1.0, 1.0, 1.0, 1.0);
+    Vec3 color = timeOfYear.getLeafColor();
+    glColor4f(color.x, color.y, color.z, 1.0);
     glPushMatrix();
     
     glTranslatef(0.05, 0, -0.05);
@@ -642,11 +636,12 @@ void FlowerSection()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     }
-
+    
     /////////////////////////////////////////////////////////////
     // DO YOUR DRAWING WORK HERE!!
     /////////////////////////////////////////////////////////////
-    glColor4f(1.0, 1.0, 1.0, 1.0);
+    Vec3 color = timeOfYear.getFlowerColor();
+    glColor4f(color.x, color.y, color.z, 1.0);
     glPushMatrix();
     
     glTranslatef(0.02, 0.0, -0.1);
@@ -955,10 +950,18 @@ int main(int argc, char** argv)
         global_scale=15;
         ImGui_ImplGlut_Init(false);
         
-        // Initialize seasons
-        timeOfYear.season = SUMMER;
-        timeOfYear.progress = 0.0;
-        timeOfYear.speed = 1.0/300;
+        // Initialize snow with a random spawn position (i.e. where it appears after
+        // it hits the ground) and starting position in bounds of the scene, as well as a
+        // random speed deviating from an average.
+        for (int i = 0; i < NUM_SNOWFLAKES; i++) {
+            snowFlakes[i].spawnPosition = Vec3(drand48()*SIDE-SIDE/2.0,
+                                               drand48()*SIDE-SIDE/2.0,
+                                               MAX_HEIGHT*2);   // all spawn at top
+            snowFlakes[i].curPosition = Vec3(drand48()*SIDE-SIDE/2.0,
+                                             drand48()*SIDE-SIDE/2.0,
+                                             drand48()*(MAX_HEIGHT*2-water_height) + water_height);
+            snowFlakes[i].speed = BASE_FLAKESPEED + BASE_FLAKESPEED*0.1*(drand48() - 0.5);
+        }
         
         ////////////////////////////////////////////////
         // DONE - CRUNCHY - If you are going to use textures
@@ -1115,7 +1118,6 @@ void setupUI()
     ///////////////////////////////////////////////////////////
 
     ImGui::SetWindowFocus();
-    ImGui::ColorEdit3("background color", (float*)&timeOfYear.backgroundColor);
     
     ImGui::SliderFloat("rotation", &global_Z, -180, 180);
     ImGui::SliderFloat("zoom", &global_scale, 0, 20);
@@ -1172,64 +1174,11 @@ void WindowDisplay(void)
                                         // if you implemented the plant growing animation.
     
     // Update the season state
-    if (!seasons_enabled) {         // If seasons aren't enabled, it's always summer
-        timeOfYear.season = SUMMER;
-        timeOfYear.progress = 0.0;
-    }
-    switch (timeOfYear.season) {
-        case SUMMER:
-            timeOfYear.backgroundColor = seasonConstants.summerSky
-                .linearInterpolate(seasonConstants.fallSky, timeOfYear.progress);
-            timeOfYear.pondColor = seasonConstants.water;
-            timeOfYear.pondAlpha = seasonConstants. waterAlpha;
-            timeOfYear.trothColor = seasonConstants.summerTroth
-                .linearInterpolate(seasonConstants.fallTroth, timeOfYear.progress);
-            timeOfYear.peakColor = seasonConstants.summerPeak
-                .linearInterpolate(seasonConstants.fallPeak, timeOfYear.progress);
-            break;
-        case FALL:
-            timeOfYear.backgroundColor = seasonConstants.fallSky
-                .linearInterpolate(seasonConstants.winterSky, timeOfYear.progress);
-            timeOfYear.pondColor = seasonConstants.water
-                .linearInterpolate(seasonConstants.ice, timeOfYear.progress);
-            timeOfYear.pondAlpha = seasonConstants.waterAlpha +
-            timeOfYear.progress*(seasonConstants.iceAlpha - seasonConstants.waterAlpha);
-            timeOfYear.trothColor = seasonConstants.fallTroth
-                .linearInterpolate(seasonConstants.winterTroth, timeOfYear.progress);
-            timeOfYear.peakColor = seasonConstants.fallPeak
-                .linearInterpolate(seasonConstants.winterPeak, timeOfYear.progress);
-            break;
-        case WINTER:
-            timeOfYear.backgroundColor = seasonConstants.winterSky
-                .linearInterpolate(seasonConstants.springSky, timeOfYear.progress);
-            timeOfYear.pondColor = seasonConstants.ice
-                .linearInterpolate(seasonConstants.water, timeOfYear.progress);
-            timeOfYear.pondAlpha = seasonConstants.iceAlpha +
-            timeOfYear.progress*(seasonConstants.waterAlpha - seasonConstants.iceAlpha);
-            timeOfYear.trothColor = seasonConstants.winterTroth
-                .linearInterpolate(seasonConstants.springTroth, timeOfYear.progress);
-            timeOfYear.peakColor = seasonConstants.winterPeak
-                .linearInterpolate(seasonConstants.springPeak, timeOfYear.progress);
-            break;
-        case SPRING:
-            timeOfYear.backgroundColor = seasonConstants.springSky
-                .linearInterpolate(seasonConstants.summerSky, timeOfYear.progress);
-            timeOfYear.pondColor = seasonConstants.water;
-            timeOfYear.pondAlpha = seasonConstants. waterAlpha;
-            timeOfYear.trothColor = seasonConstants.springTroth
-                .linearInterpolate(seasonConstants.summerTroth, timeOfYear.progress);
-            timeOfYear.peakColor = seasonConstants.springPeak
-                .linearInterpolate(seasonConstants.summerPeak, timeOfYear.progress);
-            break;
-    }
-    timeOfYear.progress += timeOfYear.speed;
-    if (timeOfYear.progress >= 1.0) {
-        timeOfYear.progress = 0.0;
-        timeOfYear.season = (Season)((timeOfYear.season + 1) % 4);
-    }
+    if (seasons_enabled) timeOfYear.advanceTime();  // Move time forward through the seasons
     
     // Clear colour buffer and Z-buffer
-    glClearColor(timeOfYear.backgroundColor.x, timeOfYear.backgroundColor.y, timeOfYear.backgroundColor.z, 1.0);
+    Vec3 background = timeOfYear.getBackgroundColor();
+    glClearColor(background.x, background.y, background.z, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // Setup the model-view transformation matrix
     glMatrixMode(GL_MODELVIEW);
@@ -1238,7 +1187,7 @@ void WindowDisplay(void)
     glClearDepth(1);
     glEnable(GL_DEPTH_TEST);    // Enable depth testing
     glEnable(GL_LIGHTING);      // Enable lighting
-    glEnable(GL_LIGHT0);        // Set up 1 light sources, 1 for diffuse,
+    glEnable(GL_LIGHT0);        // Set up 2 light sources, 1 for diffuse,
     glEnable(GL_LIGHT1);        // 1 for ambient
 
     glEnable(GL_NORMALIZE);	// Make sure normals stay normalized...
@@ -1324,6 +1273,7 @@ void WindowDisplay(void)
                     RenderPlant(PlantForest[i]);
                 glPopMatrix();
             }
+            RenderSnow();
         glPopMatrix();
     }
 
@@ -1504,4 +1454,76 @@ void curvedTexturedPlaneHori(int layers, float curve, float length, float width)
         glEnd();
     }
     glPopMatrix();
+}
+
+// Comparison function for sorting in computeWaterLevelForCover()
+int comp (const void * elem1, const void * elem2)
+{
+    float f = *((float*)elem1);
+    float s = *((float*)elem2);
+    if (f > s) return  1;
+    if (f < s) return -1;
+    return 0;
+}
+
+float computeWaterLevelForCover() {
+    float heights[GRID_RESOLVE*GRID_RESOLVE];
+    for (int i = 0; i < GRID_RESOLVE; i++) {
+        for (int j = 0; j < GRID_RESOLVE; j++) {
+            heights[j + GRID_RESOLVE*i] = GroundXYZ[i][j].z;
+        }
+    }
+    
+    // Sort heights in increasing order
+    qsort(heights, GRID_RESOLVE*GRID_RESOLVE, sizeof(float), comp);
+    
+    // Return the height at 1/3 of the array
+    return heights[(int)(WATER_COVER*GRID_RESOLVE*GRID_RESOLVE)];
+}
+
+void RenderSnow() {
+    // always update positions
+    for (int i = 0; i < NUM_SNOWFLAKES; i++) {
+        float wobbleX = 0.01*BASE_FLAKESPEED*(drand48() - 0.5);
+        float wobbleY = 0.01*BASE_FLAKESPEED*(drand48() - 0.5);
+        snowFlakes[i].curPosition = snowFlakes[i].curPosition +
+            Vec3(wobbleX, wobbleY, -snowFlakes[i].speed);
+        if (snowFlakes[i].curPosition.z < water_height) {
+            snowFlakes[i].curPosition = snowFlakes[i].spawnPosition;    // fallen flakes respawn at top
+        }
+    }
+    
+    // if we are in a cold time, generate snow
+    Season season = timeOfYear.getSeason();
+    if (season == FALL || season == WINTER) {
+        // Enable Alpha-blending
+        glEnable (GL_BLEND);
+        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        Vec3 color = timeOfYear.getSnowColor();
+        float alpha = timeOfYear.getSnowAlpha();
+        
+        glColor4f(color.x, color.y, color.z, alpha);
+        glPointSize(3.5);
+        
+        glBegin(GL_POINTS);
+        for (int i = 0; i < NUM_SNOWFLAKES; i++) {
+            // Get the camera coordinates in the current frame of reference, so that we can
+            // draw a normal from each flake to the camera and have it illuminated
+            float cameraPosition[3];
+            cameraPosition[0] = (150.0 * 1/global_scale) * cosf(-global_Z*PI/180.0) +
+            (150.0 * 1/global_scale)*-sinf(-global_Z*PI/180.0);
+            cameraPosition[1] = (150.0 * 1/global_scale) * sinf(-global_Z*PI/180.0) +
+            (150.0 * 1/global_scale)*cosf(-global_Z*PI/180.0);
+            cameraPosition[2] = (150.0 * 1/global_scale);
+            
+            glNormal3f(cameraPosition[0] - snowFlakes[i].curPosition.x,
+                       cameraPosition[1] - snowFlakes[i].curPosition.y,
+                       cameraPosition[2] - snowFlakes[i].curPosition.z);
+            glVertex3f(snowFlakes[i].curPosition.x, snowFlakes[i].curPosition.y, snowFlakes[i].curPosition.z);
+        }
+        glEnd();
+        
+        glDisable(GL_BLEND);
+    }
 }
