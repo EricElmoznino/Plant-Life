@@ -79,6 +79,7 @@ struct PlantNode{
     // it's doing!
 };
 
+bool seasons_enabled = true;
 enum Season {SUMMER = 0, FALL = 1, WINTER = 2, SPRING = 3};
 struct SeasonState{
     Season season;
@@ -547,7 +548,7 @@ void LeafSection(void)
     ////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////
-    // CRUNCHY: Use texture mapping to create nicer leaves!
+    // DONE - CRUNCHY: Use texture mapping to create nicer leaves!
     //          I am setting up the OpenGL texture mapping
     //          configuration for you, your work is in creating
     //          the polygon shape, normals, and texture coordinates
@@ -618,7 +619,7 @@ void FlowerSection()
     /////////////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////////////
-    // CRUNCHY: Use texture mapping to create nicer flowers!
+    // DONE - CRUNCHY: Use texture mapping to create nicer flowers!
     //          Should be easy if you already texture mapped
     //          the leaves.
     /////////////////////////////////////////////////////////////
@@ -960,7 +961,7 @@ int main(int argc, char** argv)
         timeOfYear.speed = 1.0/300;
         
         ////////////////////////////////////////////////
-        // CRUNCHY - If you are going to use textures
+        // DONE - CRUNCHY - If you are going to use textures
         //           for your leafs and flowers, update
         //           the code below.
         //           Make sure the input images are
@@ -1118,6 +1119,7 @@ void setupUI()
     
     ImGui::SliderFloat("rotation", &global_Z, -180, 180);
     ImGui::SliderFloat("zoom", &global_scale, 0, 20);
+    ImGui::Checkbox("seasons", &seasons_enabled);
 
     // Add "Quit" button
     if(ImGui::Button("Quit")) {
@@ -1170,6 +1172,10 @@ void WindowDisplay(void)
                                         // if you implemented the plant growing animation.
     
     // Update the season state
+    if (!seasons_enabled) {         // If seasons aren't enabled, it's always summer
+        timeOfYear.season = SUMMER;
+        timeOfYear.progress = 0.0;
+    }
     switch (timeOfYear.season) {
         case SUMMER:
             timeOfYear.backgroundColor = seasonConstants.summerSky
