@@ -528,7 +528,7 @@ void LeafSection(PlantNode *p)
     glTranslatef(0, 0, 1);  // translate to top of the stem
 
     ////////////////////////////////////////////////////////////
-    // TODO Draw your own leaf design.
+    // DONE Draw your own leaf design.
     //        It should be aligned with the current Z
     //        axis, and all transformations for positioning
     //        and orienting the leaf in the plant should be
@@ -615,7 +615,7 @@ void FlowerSection(PlantNode *p)
     // Draws a flower perpendicular to the current local Z axis
 
     /////////////////////////////////////////////////////////////
-    // TODO Add code to draw a flower,
+    // DONE Add code to draw a flower,
     //        It should be perpendicular to the Z axis, i.e.
     //        it should have the same orientation as the local
     //        x-y plane.
@@ -1269,7 +1269,7 @@ void WindowDisplay(void)
     ///////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////
-    // SUPREME CRUNCHYNESS OF DOOM: (a.k.a. if you do this Paco will
+    // DONE - SUPREME CRUNCHYNESS OF DOOM: (a.k.a. if you do this Paco will
     //                               be VERY impressed)
     //
     // a)  Add a button to your UI called 'scatter'. When pressed,
