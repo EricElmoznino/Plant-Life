@@ -43,15 +43,20 @@ private:
     
     const Vec3 summerLeaf = Vec3(0.5, 0.9, 0.5);
     const Vec3 fallLeaf = Vec3(1.0, 1.0, 1.0);
-    const Vec3 winterLeaf = Vec3(0.3, 0.3, 0.3);
+    const Vec3 winterLeaf = Vec3(1.0, 1.0, 1.0);
     const Vec3 springLeaf = Vec3(0.5, 0.9, 0.5);
     
     const Vec3 summerFlower = Vec3(1.0, 1.0, 0.0);
     const Vec3 fallFlower = Vec3(1.0, 1.0, 1.0);
-    const Vec3 winterFlower = Vec3(0.4, 0.6, 0.6);
+    const Vec3 winterFlower = Vec3(1.0, 1.0, 1.0);
     const Vec3 springFlower = Vec3(1.0, 0.0, 1.0);
     
     const Vec3 snowColor = Vec3(1.0, 1.0, 1.0);
+    
+    const float baseFallSpeed = 0.05;
+    const float fallSpeedDeviation = 0.04;
+    const float baseFallTime = 0.4;
+    const float fallTimeDeviation = 0.6;
     
     // Variables to keep track of the season state
     Season season;
@@ -73,6 +78,8 @@ public:
     Vec3 getFlowerColor() const;
     Vec3 getSnowColor() const;
     float getSnowAlpha() const;
+    float getRandomFallSpeed() const;
+    float getRandomFallTime() const;
     
     Season getSeason();
     float getProgressThroughSeason();

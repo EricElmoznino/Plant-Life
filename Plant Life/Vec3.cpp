@@ -53,6 +53,14 @@ Vec3 Vec3::operator*(float scale) const {
     return Vec3(this->x * scale, this->y * scale, this->z * scale);
 }
 
+bool Vec3::operator==(const Vec3 &other) const {
+    return this->x == other.x && this->y == other.y && this->z == other.z;
+}
+
+bool Vec3::operator!=(const Vec3 &other) const {
+    return !(*(this) == other);
+}
+
 Vec3 Vec3::linearInterpolate(const Vec3 &end, float progress) const {
     Vec3 difference = end - (*this);
     return (*this) + difference*progress;

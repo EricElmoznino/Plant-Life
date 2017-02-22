@@ -7,6 +7,7 @@
 //
 
 #include "SeasonsManager.hpp"
+#include <stdlib.h>
 
 SeasonsManager::SeasonsManager(float speed) {
     season = SUMMER;
@@ -175,6 +176,14 @@ float SeasonsManager::getSnowAlpha() const {
             return 0.0;
             break;
     }
+}
+
+float SeasonsManager::getRandomFallSpeed() const {
+    return baseFallSpeed + (drand48() * fallSpeedDeviation - fallSpeedDeviation/2.0);
+}
+
+float SeasonsManager::getRandomFallTime() const {
+    return baseFallTime + (drand48() * fallTimeDeviation - fallTimeDeviation/2.0);
 }
 
 Season SeasonsManager::getSeason() {

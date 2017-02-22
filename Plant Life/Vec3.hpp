@@ -27,6 +27,9 @@ public:
     Vec3 operator-(const Vec3 &other) const;
     Vec3 operator*(float scale) const;          // vec * scalar
     
+    bool operator==(const Vec3 &other) const;
+    bool operator!=(const Vec3 &other) const;
+    
     Vec3 linearInterpolate(const Vec3 &end, float progress) const; // progress: [0,1]
     
     // debugging

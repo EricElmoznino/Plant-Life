@@ -78,6 +78,11 @@ struct PlantNode{
 
     struct PlantNode *left;     // Left child for this node (NULL means the node is a terminal)
     struct PlantNode *right;    // Right child for this node (NULL means the node is a terminal)
+    
+    float fallSpeed;            // How fast to fall in winter and fall
+    float fallTime;             // What time to fall off in fall
+    float fallenHeight;         // Amount fallen so far
+    float totalScale;           // Scale of this node in the scene FoR. Used for falling appropriate height
 
     // QUESTION: We don't have a translation component... WHY?
 
@@ -165,9 +170,10 @@ void PrintPlant(struct PlantNode *p);
 void printNodeRecursive(struct PlantNode *p, int lev, int tgt);
 void RenderPlant(struct PlantNode *p);
 void StemSection();
-void LeafSection();
-void FlowerSection();
+void LeafSection(PlantNode *p);
+void FlowerSection(PlantNode *p);
 void AnimatedRenderPlant(void);
+void AdjustTransformForSeason(PlantNode *p);
 
 // Surface generation
 void MakeSurfaceGrid(void);
@@ -186,6 +192,11 @@ void RenderSnow(void);
 void curvedTexturedPlaneVert(int layers, float curve, float length, float width);
 void curvedTexturedPlaneHori(int layers, float curve, float length, float width);
 float computeWaterLevelForCover(void);
+Vec3 currentWorldPosition();
+Vec3 worldToScene(Vec3 p);
+Vec3 worldDownToModelDown();
+void inverse3by3(float *a, float *b);
+float max(float a, float b);
 
 /**************************************************************************
  Program Code starts
@@ -390,6 +401,11 @@ float SurfaceHeightAtLocation(float x, float y) {
     int i = (x + SIDE/2.0) / (SIDE/(GRID_RESOLVE-1));   // [0, GRID_RESOLVE-2]
     int j = (y + SIDE/2.0) / (SIDE/(GRID_RESOLVE-1));   // [0, GRID_RESOLVE-2]
     
+    // If outside of map, return the water height
+    if (i < 0 || i >= GRID_RESOLVE || j < 0 || j >= GRID_RESOLVE) {
+        return water_height;
+    }
+    
     // Find the extra ratio to linearly interpolate along  the triangle face at i,j
     float deltaX = ((x + SIDE/2.0) - i*(SIDE/(GRID_RESOLVE-1))) / (SIDE/(GRID_RESOLVE-1));
     float deltaY = ((y + SIDE/2.0) - j*(SIDE/(GRID_RESOLVE-1))) / (SIDE/(GRID_RESOLVE-1));
@@ -452,10 +468,10 @@ void RenderPlant(struct PlantNode *p)
                 StemSection();
                 break;
             case 'c':
-                LeafSection();
+                LeafSection(p);
                 break;
             case 'd':
-                FlowerSection();
+                FlowerSection(p);
                 break;
             default:
                 break;
@@ -472,12 +488,6 @@ void RenderPlant(struct PlantNode *p)
             // Draw children recursively as depth-first traversal
             RenderPlant(p->left);
             RenderPlant(p->right);
-    
-            // If this is the tip of a stem with no children, draw a  flower
-            if ((p->type == 'a' || p->type == 'b') &&
-                p->left == NULL && p->right == NULL) {
-                FlowerSection();
-            }
     
         glPopMatrix();
     
@@ -510,7 +520,7 @@ void StemSection(void)
     gluDeleteQuadric(quadObject);
 }
 
-void LeafSection(void)
+void LeafSection(PlantNode *p)
 {
     // Draws a single leaf, along the current local Z axis
     // Note that we draw a little stem before the actual leaf.
@@ -573,13 +583,20 @@ void LeafSection(void)
     // DO YOUR DRAWING WORK HERE!!!!
     Vec3 color = timeOfYear.getLeafColor();
     glColor4f(color.x, color.y, color.z, 1.0);
-    glPushMatrix();
     
+    glPushMatrix();
+
+    // Tilt leaf and shift it a little to get the texture's stem aligned
     glTranslatef(0.05, 0, -0.05);
     glRotatef(30, 1, 0, 0);
     
+    glPushMatrix();
+    AdjustTransformForSeason(p);
+    glPushMatrix();
     curvedTexturedPlaneVert(50, 100, 0.7, 1);
-    
+    glPopMatrix();
+    glPopMatrix();
+
     glPopMatrix();
 
     // Disable texture mapping
@@ -593,7 +610,7 @@ void LeafSection(void)
 
 }
 
-void FlowerSection()
+void FlowerSection(PlantNode *p)
 {
     // Draws a flower perpendicular to the current local Z axis
 
@@ -646,16 +663,19 @@ void FlowerSection()
     
     glTranslatef(0.02, 0.0, -0.1);
     
-    float curvature = 150;
+    glPushMatrix();
+    AdjustTransformForSeason(p);
+    glPushMatrix();
     for (int i = 0; i < 4; i++) {
         glRotatef(90, 0.0, 0.0, 1.0);
         glPushMatrix();
-//        curvature -= 200;
         glTranslatef(0.0, 0.05, 0.0);
         glRotatef(-25, 1, 0, 0);
-        curvedTexturedPlaneHori(50, curvature, 0.7, 1);
+        curvedTexturedPlaneHori(50, 150, 0.7, 1);
         glPopMatrix();
     }
+    glPopMatrix();
+    glPopMatrix();
     
     glPopMatrix();
     
@@ -769,7 +789,8 @@ struct PlantNode *MakePlant(void)
     p_root->z_ang=0;                                               // which is vertical w.r.t
     p_root->x_ang=0;                                               // global coordinate frame
     p_root->scl=.8+(.2*drand48());                                 // Initial scale (defines the size
-                                                                 // of the largest component).
+    p_root->totalScale=p_root->scl;                              // of the largest component).
+    
     p_root->left=NULL;
     p_root->left=NULL;
 
@@ -787,9 +808,29 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
 
     q=r=NULL;
 
-    if (p==NULL) return;                     // Reached a terminal
-    if (level>=n_levels) return;             // Reached maximum plant height
-    if (p->type=='c'||p->type=='d') return;  // c and d type nodes are terminal nodes as well
+    if (p==NULL) return;                // Reached a terminal
+    if (p->type=='c'||p->type=='d') {   // Initialize season falling parameters for leafs/flowers
+        p->fallSpeed = timeOfYear.getRandomFallSpeed();
+        p->fallTime = timeOfYear.getRandomFallTime();
+        return;  // c and d type nodes are terminal nodes as well
+    }
+    if (level>=n_levels) {
+        // If this is the tip of a stem at the last level,
+        // make a flower at the end of it along the same axis
+        if (p->type == 'a' || p->type == 'b') {
+            r=(struct PlantNode *)calloc(1,sizeof(struct PlantNode));
+            r->type = 'd';
+            r->x_ang=0.0;
+            r->z_ang=0.0;
+            r->scl=scale_mult;
+            r->totalScale=p->totalScale*r->scl;
+            r->left=NULL;
+            r->right=NULL;
+            p->left = r;    // arbitrary right or left since has only 1 child
+            GenerateRecursivePlant(p->left,level+1);    // will terminate at next level since flower
+        }
+        return;
+    }             // Reached maximum plant height
 
     dice=drand48();           // Roll the dice...
     if (p->type=='a')
@@ -807,14 +848,15 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
         q->x_ang=drand48()*X_angle;
         q->z_ang=drand48()*Z_angle;
         q->scl=scale_mult;
+        q->totalScale=p->totalScale*q->scl;
         q->left=NULL;
         q->right=NULL;
-
         
         r = (struct PlantNode *)calloc(1,sizeof(struct PlantNode));
         r->x_ang=drand48()*X_angle;
         r->z_ang=drand48()*Z_angle;
         r->scl=scale_mult;
+        r->totalScale=p->totalScale*r->scl;
         r->left=NULL;
         r->right=NULL;
         
@@ -856,6 +898,7 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
         r->x_ang=drand48()*X_angle;
         r->z_ang=drand48()*Z_angle;
         r->scl=scale_mult;
+        r->totalScale=p->totalScale*r->scl;
         r->left=NULL;
         r->right=NULL;
 
@@ -1510,20 +1553,113 @@ void RenderSnow() {
         for (int i = 0; i < NUM_SNOWFLAKES; i++) {
             // Get the camera coordinates in the current frame of reference, so that we can
             // draw a normal from each flake to the camera and have it illuminated
-            float cameraPosition[3];
-            cameraPosition[0] = (150.0 * 1/global_scale) * cosf(-global_Z*PI/180.0) +
-            (150.0 * 1/global_scale)*-sinf(-global_Z*PI/180.0);
-            cameraPosition[1] = (150.0 * 1/global_scale) * sinf(-global_Z*PI/180.0) +
-            (150.0 * 1/global_scale)*cosf(-global_Z*PI/180.0);
-            cameraPosition[2] = (150.0 * 1/global_scale);
-            
-            glNormal3f(cameraPosition[0] - snowFlakes[i].curPosition.x,
-                       cameraPosition[1] - snowFlakes[i].curPosition.y,
-                       cameraPosition[2] - snowFlakes[i].curPosition.z);
+            Vec3 camera = worldToScene(Vec3(150.0, 150.0, 150.0));
+            Vec3 normal = (camera - snowFlakes[i].curPosition).normalized();
+            glNormal3f(normal.x, normal.y, normal.z);
             glVertex3f(snowFlakes[i].curPosition.x, snowFlakes[i].curPosition.y, snowFlakes[i].curPosition.z);
         }
         glEnd();
         
         glDisable(GL_BLEND);
     }
+}
+
+void AdjustTransformForSeason(PlantNode *p) {
+    Season season = timeOfYear.getSeason();
+    float progress = timeOfYear.getProgressThroughSeason();
+    
+    // If in spring, grow the leaf/flower
+    if (season == SPRING) {
+        glScalef(progress, progress, progress);
+    }
+    
+    // If in summer or spring, keep leaf/flower attached
+    // and do not translate down
+    if (season != FALL && season != WINTER) {
+        p->fallenHeight = 0.0;
+        return;
+    }
+    
+    // If not reached this leaf/flower's fall time,
+    // do not translate down
+    if (season == FALL && progress < p->fallTime) {
+        return;
+    }
+    
+    Vec3 position = worldToScene(currentWorldPosition());
+    float groundHeight = max(SurfaceHeightAtLocation(position.x, position.y), water_height);
+    
+    // Animate the fall and stop when hit the ground
+    p->fallenHeight += p->fallSpeed;
+    if (position.z - p->fallenHeight < groundHeight) {
+        p->fallenHeight = position.z - groundHeight;
+    }
+    
+    Vec3 down = worldDownToModelDown() * p->fallenHeight * (1.0/p->totalScale);
+    glTranslatef(down.x, down.y, down.z);
+    
+    // Shrivel up the leaf/flower in the winter
+    if (season == WINTER) {
+        glScalef(1.0-progress, 1.0-progress, 1.0-progress);
+    }
+}
+
+Vec3 currentWorldPosition() {
+    float m[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, m);
+    
+    return Vec3(m[12], m[13], m[14]);
+}
+
+Vec3 worldToScene(Vec3 p) {
+    // Reverse the scale
+    p = p*(1/global_scale);
+    
+    // Reverse the rotation
+    float angle = -global_Z*PI/180.0;
+    float x = p.dot(Vec3(cosf(angle), -sinf(angle), 0));
+    float y = p.dot(Vec3(sinf(angle), cosf(angle), 0));
+    p.x = x;
+    p.y = y;
+    
+    return p;
+}
+
+Vec3 worldDownToModelDown() {
+    float mtow[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, mtow);
+    
+    float wtom[16];
+    inverse3by3(mtow, wtom);
+    
+    Vec3 wtom1 = Vec3(wtom[0], wtom[4], wtom[8]);  // row 1
+    Vec3 wtom2 = Vec3(wtom[1], wtom[5], wtom[9]);  // row 2
+    Vec3 wtom3 = Vec3(wtom[2], wtom[6], wtom[10]); // row 3
+    
+    Vec3 worldDown = Vec3(0.0, 0.0, -1.0);
+    
+    return Vec3(wtom1.dot(worldDown),
+                wtom2.dot(worldDown),
+                wtom3.dot(worldDown)).normalized();
+}
+
+// note: a and b are homogenous 4x4, but we only need the A portion
+void inverse3by3(float *a, float *b) {
+    float d = a[0]*(a[5]*a[10]-a[9]*a[6]) -
+        a[4]*(a[1]*a[10]-a[9]*a[2]) +
+        a[8]*(a[1]*a[6]-a[5]*a[2]);
+    
+    b[0] = 1.0/d * (a[5]*a[10]-a[9]*a[6]);
+    b[1] = 1.0/d * (a[9]*a[2]-a[1]*a[10]);
+    b[2] = 1.0/d * (a[1]*a[6]-a[5]*a[2]);
+    b[4] = 1.0/d * (a[8]*a[6]-a[4]*a[10]);
+    b[5] = 1.0/d * (a[0]*a[10]-a[8]*a[2]);
+    b[6] = 1.0/d * (a[4]*a[2]-a[0]*a[6]);
+    b[8] = 1.0/d * (a[4]*a[9]-a[8]*a[5]);
+    b[9] = 1.0/d * (a[8]*a[1]-a[0]*a[9]);
+    b[10] = 1.0/d * (a[0]*a[5]-a[4]*a[1]);
+}
+
+float max(float a, float b) {
+    return a < b ? b : a;
 }
