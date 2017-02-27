@@ -1024,9 +1024,9 @@ int main(int argc, char** argv)
         textures_on=1;		// Set to 1 to enable texturing
         if (textures_on)
         {
-            leaf_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/leaf_normal.ppm",&l_sx,&l_sy);	// Evidently, you must change this to be
+            leaf_texture=readPPM("/Users/Eric/Dropbox/University of Toronto/Winter 2017 Semester/Graphics/Plant Life/Plant Life/leaf_normal.ppm",&l_sx,&l_sy);	// Evidently, you must change this to be
                                         // your leaf texture image in .ppm format!
-            petal_texture=readPPM("/Users/olivierelmoznino/Desktop/Plant-Life/Plant Life/petal_rose.ppm",&p_sx,&p_sy);	// Similarly, set this to be your petal
+            petal_texture=readPPM("/Users/Eric/Dropbox/University of Toronto/Winter 2017 Semester/Graphics/Plant Life/Plant Life/petal_rose.ppm",&p_sx,&p_sy);	// Similarly, set this to be your petal
                                         // texture image.
             if (!leaf_texture||!petal_texture)
             {
