@@ -570,7 +570,6 @@ void LeafSection(PlantNode *p)
         // Don't let transparent pixels update the depth buffer
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER, 0.5);
-        glEnable(GL_CULL_FACE);
         glBindTexture(GL_TEXTURE_2D,l_texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -603,7 +602,6 @@ void LeafSection(PlantNode *p)
     if (textures_on)
     {
         glDisable(GL_ALPHA_TEST);
-        glDisable(GL_CULL_FACE);
         glDisable(GL_TEXTURE_2D);
         glDisable (GL_BLEND);
     }
@@ -645,7 +643,6 @@ void FlowerSection(PlantNode *p)
         // Don't let transparent pixels update the depth buffer
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER, 0.5);
-        glEnable(GL_CULL_FACE);
         glBindTexture(GL_TEXTURE_2D,p_texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -683,7 +680,6 @@ void FlowerSection(PlantNode *p)
     if (textures_on)
     {
         glDisable(GL_ALPHA_TEST);
-        glDisable(GL_CULL_FACE);
         glDisable(GL_TEXTURE_2D);
         glDisable (GL_BLEND);
     }
@@ -1452,11 +1448,6 @@ void curvedTexturedPlaneVert(int layers, float curve, float length, float width)
         glTexCoord2f(0.0, 1.0-end); glVertex3f(-width/2, 0.0, trans);
         glTexCoord2f(0.0, 1.0-start); glVertex3f(-width/2, 0.0, 0.0);
         
-        glTexCoord2f(0.0, 1.0-start); glVertex3f(-width/2, 0.0, 0.0);
-        glTexCoord2f(0.0, 1.0-end); glVertex3f(-width/2, 0.0, trans);
-        glTexCoord2f(1.0, 1.0-end); glVertex3f(width/2, 0.0, trans);
-        glTexCoord2f(1.0, 1.0-start); glVertex3f(width/2, 0.0, 0.0);
-        
         glEnd();
     }
     glPopMatrix();
@@ -1482,17 +1473,12 @@ void curvedTexturedPlaneHori(int layers, float curve, float length, float width)
         float end = (float)(i+1)/layers;
         
         glBegin(GL_QUADS);
-        glNormal3f(0, 1, 0);
+        glNormal3f(0, -1, 0);
         
         glTexCoord2f(1.0-start, 1.0); glVertex3f(trans, 0.0, 0.0);
         glTexCoord2f(1.0-start, 0.0); glVertex3f(trans, 0.0, length);
         glTexCoord2f(1.0-end, 0.0); glVertex3f(0.0, 0.0, length);
         glTexCoord2f(1.0-end, 1.0); glVertex3f(0.0, 0.0, 0.0);
-        
-        glTexCoord2f(1.0-end, 1.0); glVertex3f(0.0, 0.0, 0.0);
-        glTexCoord2f(1.0-end, 0.0); glVertex3f(0.0, 0.0, length);
-        glTexCoord2f(1.0-start, 0.0); glVertex3f(trans, 0.0, length);
-        glTexCoord2f(1.0-start, 1.0); glVertex3f(trans, 0.0, 0.0);
         
         glEnd();
     }
