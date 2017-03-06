@@ -53,10 +53,10 @@ private:
     
     const Vec3 snowColor = Vec3(1.0, 1.0, 1.0);
     
-    const float baseFallSpeed = 0.05;
-    const float fallSpeedDeviation = 0.04;
-    const float baseFallTime = 0.4;
-    const float fallTimeDeviation = 0.6;
+    const float baseFallSpeed = 0.025;
+    const float fallSpeedDeviation = 0.02;
+    const float baseFallTime = 0.2;
+    const float fallTimeDeviation = 0.3;
     
     // Variables to keep track of the season state
     Season season;

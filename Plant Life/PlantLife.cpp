@@ -107,7 +107,7 @@ Vec3 GroundXYZ[GRID_RESOLVE][GRID_RESOLVE];     // Array to store ground surface
 Vec3 GroundNormals[GRID_RESOLVE][GRID_RESOLVE]; // Array to hold normal vectors at vertices (will use normal to triangle
                                                    // defined by the vertices at [i][j], [i+1][j], and [i][j+1]
 
-SeasonsManager timeOfYear(1.0/300.0);   // Structure to keep track of the season and trainsitions
+SeasonsManager timeOfYear(1.0/600.0);   // Structure to keep track of the season and trainsitions
 bool seasons_enabled = true;            // Season transitions enabled by default
 
 Snow snowFlakes[NUM_SNOWFLAKES];                  // Array of snow flakes
@@ -592,7 +592,7 @@ void LeafSection(PlantNode *p)
     glPushMatrix();
     AdjustTransformForSeason(p);
     glPushMatrix();
-    curvedTexturedPlaneVert(50, 100, 0.7, 1);
+    curvedTexturedPlaneVert(20, 100, 0.7, 1);
     glPopMatrix();
     glPopMatrix();
 
@@ -668,7 +668,7 @@ void FlowerSection(PlantNode *p)
         glPushMatrix();
         glTranslatef(0.0, 0.05, 0.0);
         glRotatef(-25, 1, 0, 0);
-        curvedTexturedPlaneHori(50, 150, 0.7, 1);
+        curvedTexturedPlaneHori(30, 170, 0.7, 1);
         glPopMatrix();
     }
     glPopMatrix();
@@ -1469,8 +1469,8 @@ void curvedTexturedPlaneHori(int layers, float curve, float length, float width)
             glRotatef(-rot, 0, 0, 1);
         }
         
-        float start = (float)i/layers;
-        float end = (float)(i+1)/layers;
+        float end = (float)i/layers;
+        float start = (float)(i+1)/layers;
         
         glBegin(GL_QUADS);
         glNormal3f(0, -1, 0);
